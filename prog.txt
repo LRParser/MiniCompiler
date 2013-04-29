@@ -1,0 +1,15 @@
+; Sample RAL program
+; if (a == b)
+;    c = 1;
+; else
+;    c = 0;
+   
+LDA 3; ac <- memory[3]
+SUB 4; AC <- AC - memory[4]
+JMZ 7; if (memory[3] == memory[4]) goto 7
+LDA 1; AC <- 0
+STA 5; memory[5] = 0
+HLT  ; halt
+LDA 2; AC <- 1
+STA 5; memory[5] = 1
+HLT  ; halt
