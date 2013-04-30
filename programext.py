@@ -76,11 +76,11 @@ class MachineCode:
 
     @property
     def opcode(self):
-        self.__opcode = opcode
+        return self.__opcode
 
     @property
     def operand(self):
-        self.__operand = operand
+        return self.__operand
 
     def __str__(self):
         return "%s %s" % (self.opcode, self.operand)
