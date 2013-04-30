@@ -19,31 +19,31 @@
 #		Procedure calls get their own environment, can not modify enclosing env
 #
 #	Grammar:
-#		program: stmt_list 
-#		stmt_list:  stmt ';' stmt_list 
-#		    |   stmt  
-#		stmt:  assign_stmt 
-#		    |  define_stmt 
-#		    |  if_stmt 
-#		    |  while_stmt 
+#		program: stmt_list
+#		stmt_list:  stmt ';' stmt_list
+#		    |   stmt
+#		stmt:  assign_stmt
+#		    |  define_stmt
+#		    |  if_stmt
+#		    |  while_stmt
 #		assign_stmt: IDENT ASSIGNOP expr
 #		define_stmt: DEFINE IDENT PROC '(' param_list ')' stmt_list END
 #		if_stmt: IF expr THEN stmt_list ELSE stmt_list FI
 #		while_stmt: WHILE expr DO stmt_list OD
-#		param_list: IDENT ',' param_list 
-#		    |      IDENT 
-#		expr: expr '+' term   
-#		    | expr '-' term   
-#		    | term            
-#		term: term '*' factor   
-#		    | factor            
-#		factor:     '(' expr ')'  
-#		    |       NUMBER 
-#		    |       IDENT 
-#		    |       funcall 
+#		param_list: IDENT ',' param_list
+#		    |      IDENT
+#		expr: expr '+' term
+#		    | expr '-' term
+#		    | term
+#		term: term '*' factor
+#		    | factor
+#		factor:     '(' expr ')'
+#		    |       NUMBER
+#		    |       IDENT
+#		    |       funcall
 #		funcall:  IDENT '(' expr_list ')'
-#		expr_list: expr ',' expr_list 
-#		    |      expr 
+#		expr_list: expr ',' expr_list
+#		    |      expr
 #
 
 import sys
@@ -54,8 +54,36 @@ import sys
 returnSymbol = 'return'
 
 tabstop = '  ' # 2 spaces
+######   OPCODES   ##################
+
+LD = 'LD'
+ST = 'ST'
+ADD = 'ADD'
+SUB = 'SUB'
+MUL = 'MUL'
+JMP = 'JMP'
+JMI = 'JMI'
+JMN = 'JMN'
+CAL = 'CAL'
+HLT = 'HLT'
 
 ######   CLASSES   ##################
+class MachineCode:
+
+    def __init__(self, opcode=None, operand=None):
+        self.__opcode = opcode
+        self.__operand = operand
+
+    @property
+    def opcode(self):
+        self.__opcode = opcode
+
+    @property
+    def operand(self):
+        self.__operand = operand
+
+    def __str__(self):
+        return "%s %s" % (self.opcode, self.operand)
 
 class Expr :
 	'''Virtual base class for expressions in the language'''
@@ -81,7 +109,7 @@ class Number( Expr ) :
 
 	def __init__( self, v=0 ) :
 		self.value = v
-	
+
 	def eval( self, nt, ft ) :
 		return self.value
 
@@ -93,7 +121,7 @@ class Ident( Expr ) :
 
 	def __init__( self, name ) :
 		self.name = name
-	
+
 	def eval( self, nt, ft ) :
 		return nt[ self.name ]
 
@@ -111,7 +139,7 @@ class Times( Expr ) :
 		# if type( lhs ) == type( Expr ) :
 		self.lhs = lhs
 		self.rhs = rhs
-	
+
 	def eval( self, nt, ft ) :
 		return self.lhs.eval( nt, ft ) * self.rhs.eval( nt, ft )
 
@@ -128,7 +156,7 @@ class Plus( Expr ) :
 	def __init__( self, lhs, rhs ) :
 		self.lhs = lhs
 		self.rhs = rhs
-	
+
 	def eval( self, nt, ft ) :
 		return self.lhs.eval( nt, ft ) + self.rhs.eval( nt, ft )
 
@@ -145,7 +173,7 @@ class Minus( Expr ) :
 	def __init__( self, lhs, rhs ) :
 		self.lhs = lhs
 		self.rhs = rhs
-	
+
 	def eval( self, nt, ft ) :
 		return self.lhs.eval( nt, ft ) - self.rhs.eval( nt, ft )
 
@@ -159,11 +187,11 @@ class Minus( Expr ) :
 class FunCall( Expr ) :
 	'''stores a function call:
 	  - its name, and arguments'''
-	
+
 	def __init__( self, name, argList ) :
 		self.name = name
 		self.argList = argList
-	
+
 	def eval( self, nt, ft ) :
 		return ft[ self.name ].apply( nt, ft, self.argList )
 
@@ -203,7 +231,7 @@ class AssignStmt( Stmt ) :
 		rhs'''
 		self.name = name
 		self.rhs = rhs
-	
+
 	def eval( self, nt, ft ) :
 		nt[ self.name ] = self.rhs.eval( nt, ft )
 
@@ -234,7 +262,7 @@ class IfStmt( Stmt ) :
 		cond - expression (integer)
 		tBody - StmtList
 		fBody - StmtList'''
-		
+
 		self.cond = cond
 		self.tBody = tBody
 		self.fBody = fBody
@@ -277,14 +305,14 @@ class StmtList :
 
 	def __init__( self ) :
 		self.sl = []
-	
+
 	def insert( self, stmt ) :
 		self.sl.insert( 0, stmt )
-	
+
 	def eval( self, nt, ft ) :
 		for s in self.sl :
 			s.eval( nt, ft )
-	
+
 	def display( self, nt, ft, depth=0 ) :
 		print "%sSTMT LIST" % (tabstop*depth)
 		for s in self.sl :
@@ -331,22 +359,22 @@ class Proc :
 		else :
 			print "Error:  no return value"
 			sys.exit( 2 )
-	
+
 	def display( self, nt, ft, depth=0 ) :
 		print "%sPROC %s :" % (tabstop*depth, str(self.parList))
 		self.body.display( nt, ft, depth+1 )
 
 
 class Program :
-	
+
 	def __init__( self, stmtList ) :
 		self.stmtList = stmtList
 		self.nameTable = {}
 		self.funcTable = {}
-	
+
 	def eval( self ) :
 		self.stmtList.eval( self.nameTable, self.funcTable )
-	
+
 	def dump( self ) :
 		print "Dump of Symbol Table"
 		print "Name Table"
@@ -359,4 +387,3 @@ class Program :
 	def display( self, depth=0 ) :
 		print "%sPROGRAM :" % (tabstop*depth)
 		self.stmtList.display( self.nameTable, self.funcTable )
-
