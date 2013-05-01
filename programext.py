@@ -107,7 +107,7 @@ class LabelFactory ( object ) :
         self.count = 0
 
     def get_label( self ):
-        newLabel = Label(self.count)
+        newLabel = Label("L" + str(self.count))
         self.count = self.count + 1
         return newLabel
 
