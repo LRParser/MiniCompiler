@@ -102,7 +102,7 @@ class TempVariable(Label):
         super(TempVariable, self).__init__("T%s" % number)
 
 
-class TempVariableFactory():
+class TempVariableFactory(object):
 
     def __init__(self):
         self.__temps = list()
