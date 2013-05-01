@@ -107,6 +107,8 @@ class Label(object):
     def __eq__(self,other) :
         if isinstance(other,Label) :
             return self.label == other.label
+        elif isinstance(other,str) :
+            return self.label == other
         else :
             return False
 
@@ -275,10 +277,10 @@ class Number( Expr ) :
                 return str(self.value)
 
         def __eq__(self,other):
-                if not(isinstance(other,Number)) :
-                    return False
+                if isinstance(other,Number) :
+                    return self.value == other.value 
                 else :
-                    return self.value == other.value
+                    return False
 
         def __ne__(self,other):
                 return not self.__eq__(other)
@@ -315,7 +317,6 @@ class Ident( Expr ) :
                 return self.name
 
         def __eq__(self, other):
-                log.debug("Calling __eq__ on %s and %s" % (self, other))
                 if(isinstance(other,Ident)) :
                         return self.name == other.name
                 else :
@@ -325,7 +326,7 @@ class Ident( Expr ) :
                 return not self.__eq__(other)
 
         def __hash__(self):
-                return self.name.__hash__()
+                return hash(self.name)
 
 
         def translate( self, nt=None, ft=None ) :
@@ -467,12 +468,15 @@ class AssignStmt( Stmt ) :
 		self.rhs.display( nt, ft, depth+1 )
 
         def __str__( self ) :
-                return self.name
+                return str(self.name)
 
         def __eq__( self, other ) :
                 if(isinstance(other,AssignStmt)) :
                     return self.name == other.name
+                elif(isinstance(other,str)) :
+                    return self.name == other
                 else :
+                    log.debug("Returning false")
                     return False
 
         def __ne__( self, other ) :
@@ -482,28 +486,28 @@ class AssignStmt( Stmt ) :
             return hash(self.name)
 
         def translate(self, nt, ft) :
-                '''Produces (unlinked) machine code to load the locates of RHS via LD, and store into location of LHS via LD'''
-                log.debug("Entering translate method for AssignStmt: %s" % self)
-                instructions = list()
-               
-                # First, execute the code corresponding to the RHS
-                rhsCode = self.rhs.translate(nt,ft)
-                instructions.append(rhsCode)
-                log.debug("RHS of AssignStmt translated")
-                
-                # The value computed by the RHS is now in the accumulator. First, ensure the Ident on LHS is in the symbol table for later linking
-                entry = SymbolTableUtils.createOrGetSymbolTableReference(self,self.name,VAR)          
+            '''Produces (unlinked) machine code to load the locates of RHS via LD, and store into location of LHS via LD'''
+            log.debug("Entering translate method for AssignStmt: %s" % self)
+            instructions = list()
+           
+            # First, execute the code corresponding to the RHS
+            rhsCode = self.rhs.translate(nt,ft)
+            instructions.append(rhsCode)
+            log.debug("RHS of AssignStmt translated")
+            
+            # The value computed by the RHS is now in the accumulator. First, ensure the Ident on LHS is in the symbol table for later linking
+            entry = SymbolTableUtils.createOrGetSymbolTableReference(self,UNKNOWN,VAR)          
 
-                # First, ensure the Ident is in the symbol table. Then, store the value in the accumulator in the memory address pointed to by the Ident on the LHS
-                ldCode = MachineCode(LD,rhsCode[-1].operand)
-                instructions.append(ldCode) 
-                assignCode = MachineCode(ST,self.name)
-                instructions.append(assignCode)
-                log.debug("LHS of AssignStmt translated")
+            # First, ensure the Ident is in the symbol table. Then, store the value in the accumulator in the memory address pointed to by the Ident on the LHS
+            ldCode = MachineCode(LD,rhsCode[-1].operand)
+            instructions.append(ldCode) 
+            assignCode = MachineCode(ST,self.name)
+            instructions.append(assignCode)
+            log.debug("LHS of AssignStmt translated")
+  
+            GLOBAL_SYMBOL_TABLE.dump()
       
-                GLOBAL_SYMBOL_TABLE.dump()
-          
-                return instructions
+            return instructions
 
 class DefineStmt( Stmt ) :
 	'''Binds a proc object to a name'''
