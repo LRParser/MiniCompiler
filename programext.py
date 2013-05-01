@@ -50,8 +50,7 @@ import sys
 import logging
 
 
-GLOBAL_NAME_TABLE = dict()
-GLOBAL_FUNCTION_TABLE = dict()
+GLOBAL_SYMBOL_TABLE = dict()
 
 logging.basicConfig(
    format = "%(levelname) -4s %(message)s",
@@ -129,7 +128,7 @@ class TempVariableFactory(object):
 TEMP_VARIABLE_FACTORY = TempVariableFactory()
 
 
-class Expr :
+class Expr(object) :
 	'''Virtual base class for expressions in the language'''
 
 	def __init__( self ) :
@@ -144,6 +143,11 @@ class Expr :
 			'Expr.eval: virtual method.  Must be overridden.' )
 
 	def display( self, nt, ft, depth=0 ) :
+		'For debugging.'
+		raise NotImplementedError(
+			'Expr.display: virtual method.  Must be overridden.' )
+
+        def translate( self, nt=None, ft=None ) :
 		'For debugging.'
 		raise NotImplementedError(
 			'Expr.display: virtual method.  Must be overridden.' )
