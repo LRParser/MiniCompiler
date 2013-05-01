@@ -82,16 +82,8 @@ HLT = 'HLT'
 class MachineCode(object):
 
     def __init__(self, opcode=None, operand=None):
-        self.__opcode = opcode
-        self.__operand = operand
-
-    @property
-    def opcode(self):
-        return self.__opcode
-
-    @property
-    def operand(self):
-        return self.__operand
+        self.opcode = opcode
+        self.operand = operand
 
     def __str__(self):
         return "%s %s" % (self.opcode, self.operand)
@@ -99,11 +91,7 @@ class MachineCode(object):
 class Label(object):
 
     def __init__(self, label=None):
-        self.__label = label
-
-    @property
-    def label(self):
-        return self.__label
+        self.label = label
 
     def __str__(self):
         return str(self.label)
@@ -114,15 +102,15 @@ class TempVariable(Label):
         super(TempVariable, self).__init__("T%s" % number)
 
 
-class TempVariableFactory(object):
+class TempVariableFactory():
 
     def __init__(self):
         self.__temps = list()
-        self.__counter = 0
+        self.count = 0
 
     def get_temp(self):
-        temp = TempVariable(self.__counter)
-        self.__counter = self.__counter + 1
+        temp = TempVariable(self.count)
+        self.count = self.count + 1
         return temp
 
 TEMP_VARIABLE_FACTORY = TempVariableFactory()
