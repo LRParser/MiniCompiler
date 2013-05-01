@@ -496,49 +496,49 @@ class IfStmt( Stmt ) :
 		else :
 			self.fBody.eval( nt, ft )
 
-        def translate( self, nt, ft ) :
-            instructions = list()
+    def translate( self, nt, ft ) :
+        instructions = list()
 
-            # translate the conditional expression
-            (condCode, storageLocation) = translate(self.cond, nt, ft)
-            for instr in condCode :
-                instructions.append(instr)
+        # translate the conditional expression
+        (condCode, storageLocation) = translate(self.cond, nt, ft)
+        for instr in condCode :
+            instructions.append(instr)
 
-            # load result of condConde into accumulator
-            instructions.append(MachineCode(LD, storageLocation))
+        # load result of condConde into accumulator
+        instructions.append(MachineCode(LD, storageLocation))
 
-            # if result is false (<= 0), jump over trueBody
-            falseBodyLabel = LABEL_FACTORY.get_label()
-            instructions.append(MachineCode(JMN, falseBodyLabel))
-            instructions.append(MachineCode(JMZ, falseBodyLabel))
+        # if result is false (<= 0), jump over trueBody
+        falseBodyLabel = LABEL_FACTORY.get_label()
+        instructions.append(MachineCode(JMN, falseBodyLabel))
+        instructions.append(MachineCode(JMZ, falseBodyLabel))
 
-            # translate the trueBody
-            (trueBody, storageLocation) = translate(self.tBody, nt, ft)
-            for instr in trueBody :
-                instructions.append(instr)
+        # translate the trueBody
+        (trueBody, storageLocation) = translate(self.tBody, nt, ft)
+        for instr in trueBody :
+            instructions.append(instr)
 
-            # load the result of trueBody
-            instructions.append(MachineCode(LD, storageLocation))
+        # load the result of trueBody
+        instructions.append(MachineCode(LD, storageLocation))
 
-            # jump over the falseBody
-            nextStatement = LABEL_FACTORY.get_label()
-            instructions.append(MachineCode(JMP, nextStatement))
+        # jump over the falseBody
+        nextStatement = LABEL_FACTORY.get_label()
+        instructions.append(MachineCode(JMP, nextStatement))
 
-            # insert the falseBodyLabel
-            instructions.append(falseBodyLabel)
+        # insert the falseBodyLabel
+        instructions.append(falseBodyLabel)
 
-            # translate the flaseBody
-            (falseBody, storageLocation) = translate(self.fBody, nt, ft)
-            for instr in falseBody :
-                instructions.append(instr)
+        # translate the flaseBody
+        (falseBody, storageLocation) = translate(self.fBody, nt, ft)
+        for instr in falseBody :
+            instructions.append(instr)
 
-            # load resulf of falseBody
-            instructions.append(MachineCode(LD, storageLocation))
+        # load resulf of falseBody
+        instructions.append(MachineCode(LD, storageLocation))
 
-            # insert the nextStatement label
-            instructions.append(nextStatement)
+        # insert the nextStatement label
+        instructions.append(nextStatement)
             
-            return instructions
+        return instructions
 
 
 	def display( self, nt, ft, depth=0 ) :
@@ -560,43 +560,45 @@ class WhileStmt( Stmt ) :
 		while self.cond.eval( nt, ft ) > 0 :
 			self.body.eval( nt, ft )
 
-        def translate( self, nt, ft ) :
-                self.cond.translate(nt, ft)
-                self.body.translate(nt, ft)
+    def translate( self, nt, ft) :
+        instructions = list()
 
-        def translate( self, nt, ft) :
-            instructions = list()
+        # insert the loopBeginlabel
+        loopBeginLabel = LABEL_FACTORY.get_label()
+        instructions.append(loopBeginLabel)
 
-            # insert the loopBeginlabel
-            loopBeginLabel = LABEL_FACTORY.get_label()
-            instructions.append(loopBeginLabel)
+        # translate the body of the conditional
+        (condBody, storageLocation) = self.cond.translate(nt, ft)
 
-            # translate the body of the conditional
-            condBody = self.cond.translate(nt, ft)
-            
-            for instr in condBody :
-                instructions.append(instr)
+        for instr in condBody :
+            instructions.append(instr)
 
-            # print to log the result of condBody
-            log.debug(instr)
+        # print to log the result of condBody
+        log.debug(instr)
 
-            # if the result is false (<= 0), jump to loopEndLabel
-            loopEndLabel = LABEL_FACTORY.get_label()
-            instructions.append(MachineCode(JMN, loopEndLabel))
-            instructions.append(MachineCode(JMZ, loopEndLabel))
+        # load the result of condBody
+        instructions.append(MachineCode(LD, storageLocation))
 
-            # translate the loopBody
-            loopBody = self.body.translate(nt, ft)
-            for instr in loopBody :
-                instructions.append(instr)
+        # if the result is false (<= 0), jump to loopEndLabel
+        loopEndLabel = LABEL_FACTORY.get_label()
+        instructions.append(MachineCode(JMN, loopEndLabel))
+        instructions.append(MachineCode(JMZ, loopEndLabel))
 
-            # go back to the begining of the loop
-            instructions.append(MachineCode(JMP, loopBeginLabel))
+        # translate the loopBody
+        (loopBody, storageLocation) = self.body.translate(nt, ft)
+        for instr in loopBody :
+            instructions.append(instr)
 
-            # insert the loopEndLabel
-            instructions.append(loopEndLabel)
+        # load the result of loopBody
+        instructions.append(MachineCode(LD, storageLocation))
 
-            return instructions
+        # go back to the begining of the loop
+        instructions.append(MachineCode(JMP, loopBeginLabel))
+
+        # insert the loopEndLabel
+        instructions.append(loopEndLabel)
+
+        return instructions
 
 	def display( self, nt, ft, depth=0 ) :
 		print "%sWHILE" % (tabstop*depth)
