@@ -24,6 +24,8 @@ FUNC2=$(TEST_INPUT_DIR1)/iterList.p
 
 .PHONY : clean test lint build view-part1 view-part2 view-func1 view-func2
 
+ram:
+	@g++ ram.cpp main.cpp -o ram
 
 lint: clean
 	-pylint $(INTERPRET) $(PROGRAMEXT) --rcfile $(TEST_DIR)/$(LINT_FILE)
@@ -45,9 +47,8 @@ test-part2: clean
 test: test-part1 test-part2
 
 clean:
-	@rm -f *.pyc *.out parsetab.py
-	@rm -rf $(TEST_OUTPUT_DIR1)
-	@rm -rf $(TEST_OUTPUT_DIR2)
+	@rm -f *.pyc *.out parsetab.py ram
+
 
 view-part1 : clean
 	@more $(INTERPRET) $(PROGRAMEXT)
