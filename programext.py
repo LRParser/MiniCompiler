@@ -122,19 +122,19 @@ TEMP_VARIABLE_FACTORY = TempVariableFactory()
 
 class SymbolTableEntry(object):
 
-    def __init__(self, value=None, type=None, address=None):
+    def __init__(self, value=None, entryType=None, address=None):
         """ Class representing a Symbol Table Entry
 
         :param value: Value of the entry
-        :param type: Type, Constant, Variable, Temp
+        :param entryType: Type, Constant, Variable, Temp
         :param address: Memory address where located.
         """
         self.value = value
-        self.type = type
+        self.entryType = entryType
         self.address = address
 
     def __str__(self):
-        return "%s %s %s" % (self.value, self.type, self.address)
+        return "%s %s %s" % (self.value, self.entryType, self.address)
 
 class Expr(object) :
 	'''Virtual base class for expressions in the language'''
