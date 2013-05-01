@@ -134,6 +134,10 @@ def p_program( p ) :
   instructions = P.optimize(instructions)
   for inst in instructions :
     log.debug(inst)
+  log.info('Linking Program')
+  instructions = P.link(instructions)
+  for inst in instructions :
+    log.debug(inst)
 
 def p_stmt_list( p ) :
  '''stmt_list : stmt SEMICOLON stmt_list

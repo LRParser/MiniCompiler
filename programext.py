@@ -1,49 +1,49 @@
 #!/usr/bin/python
 #
 # exp.py - Classes to represent underlying data structures for the grammar
-#	 below, for the mini-compiler.
+#        below, for the mini-compiler.
 #
 # Kurt Schmidt
 # 8/07
 #
 # DESCRIPTION:
-#		Just a translation of the C++ implementation by Jeremy Johnson (see
-#		programext.cpp)
+#               Just a translation of the C++ implementation by Jeremy Johnson (see
+#               programext.cpp)
 #
 # EDITOR: cols=80, tabstop=2
 #
 # NOTES
-#	environment:
-#		a dict
+#       environment:
+#               a dict
 #
-#		Procedure calls get their own environment, can not modify enclosing env
+#               Procedure calls get their own environment, can not modify enclosing env
 #
-#	Grammar:
-#		program: stmt_list
-#		stmt_list:  stmt ';' stmt_list
-#		    |   stmt
-#		stmt:  assign_stmt
-#		    |  define_stmt
-#		    |  if_stmt
-#		    |  while_stmt
-#		assign_stmt: IDENT ASSIGNOP expr
-#		define_stmt: DEFINE IDENT PROC '(' param_list ')' stmt_list END
-#		if_stmt: IF expr THEN stmt_list ELSE stmt_list FI
-#		while_stmt: WHILE expr DO stmt_list OD
-#		param_list: IDENT ',' param_list
-#		    |      IDENT
-#		expr: expr '+' term
-#		    | expr '-' term
-#		    | term
-#		term: term '*' factor
-#		    | factor
-#		factor:     '(' expr ')'
-#		    |       NUMBER
-#		    |       IDENT
-#		    |       funcall
-#		funcall:  IDENT '(' expr_list ')'
-#		expr_list: expr ',' expr_list
-#		    |      expr
+#       Grammar:
+#               program: stmt_list
+#               stmt_list:  stmt ';' stmt_list
+#                   |   stmt
+#               stmt:  assign_stmt
+#                   |  define_stmt
+#                   |  if_stmt
+#                   |  while_stmt
+#               assign_stmt: IDENT ASSIGNOP expr
+#               define_stmt: DEFINE IDENT PROC '(' param_list ')' stmt_list END
+#               if_stmt: IF expr THEN stmt_list ELSE stmt_list FI
+#               while_stmt: WHILE expr DO stmt_list OD
+#               param_list: IDENT ',' param_list
+#                   |      IDENT
+#               expr: expr '+' term
+#                   | expr '-' term
+#                   | term
+#               term: term '*' factor
+#                   | factor
+#               factor:     '(' expr ')'
+#                   |       NUMBER
+#                   |       IDENT
+#                   |       funcall
+#               funcall:  IDENT '(' expr_list ')'
+#               expr_list: expr ',' expr_list
+#                   |      expr
 #
 
 import sys
@@ -104,6 +104,19 @@ class Label(object):
     def __str__(self):
         return str(self.label)
 
+    def __eq__(self,other) :
+        if isinstance(other,Label) :
+            return self.label == other.label
+        else :
+            return False
+
+    def __ne__(self,other) :
+        return not __eq__(self,other)
+
+    def __hash__(self) :
+        return hash(self.label)
+
+
 class LabelFactory ( object ) :
     def __init__( self ) :
         self.__labels = list()
@@ -122,6 +135,15 @@ class TempVariable(Label):
     def __init__(self, number):
         super(TempVariable, self).__init__("T%s" % number)
 
+    def __eq__(self, other) :
+        return super(TempVariable,self).__eq__(other)
+
+    def __ne__(self, other) :
+        return not self.__eq__(other)
+
+    def __hash__(self) :
+        return super(TempVariable,self).__hash__()
+
 
 class TempVariableFactory(object):
 
@@ -131,6 +153,7 @@ class TempVariableFactory(object):
 
     def get_temp(self):
         temp = TempVariable(self.count)
+        SymbolTableUtils.createOrGetSymbolTableReference(temp,temp.label,TEMP)        
         self.count = self.count + 1
         return temp
 
@@ -163,8 +186,11 @@ class SymbolTable(dict) :
             for entry in self :
                 log.debug("Name: %s %s" % (entry, self[entry]))
 
-        def countOf(self, et) :
-            return len(filter(lambda x: x.entryType == et, self.itervalues()))
+        def iterate(self, entryType) :
+            return filter(lambda x: x.entryType == entryType, self.itervalues())    
+
+        def countOf(self, entryType) :
+            return len(filter(lambda x: x.entryType == entryType, self.itervalues()))
 
         def summarize(self) :
             log.debug("Num_Vars = %d, Num_Consts = %d, Num_Temps = %d" % ( self.countOf(VAR), self.countOf(CONST), self.countOf(TEMP) ) )
@@ -188,43 +214,62 @@ class SymbolTableUtils :
                         GLOBAL_SYMBOL_TABLE[key] = entry
                 return entry
 
+### Linker Code ###
+
+class Linker(object) :
+
+    @staticmethod
+    def linkAddressesToSymbolTable(symbolTable) :
+        currentAddr = 1
+        for var in symbolTable.iterate(VAR) :
+            var.address = currentAddr
+            currentAddr = currentAddr + 1
+
+        for const in symbolTable.iterate(CONST) :
+            const.address = currentAddr
+            currentAddr = currentAddr + 1
+
+        for temp in symbolTable.iterate(TEMP) :
+            temp.address = currentAddr
+            currentAddr = currentAddr + 1
+
 class Expr(object) :
-	'''Virtual base class for expressions in the language'''
+        '''Virtual base class for expressions in the language'''
 
-	def __init__( self ) :
-		raise NotImplementedError(
-			'Expr: pure virtual base class.  Do not instantiate' )
+        def __init__( self ) :
+                raise NotImplementedError(
+                        'Expr: pure virtual base class.  Do not instantiate' )
 
-	def eval( self, nt, ft ) :
-		'''Given an environment and a function table, evaluates the expression,
-		returns the value of the expression (an int in this grammar)'''
+        def eval( self, nt, ft ) :
+                '''Given an environment and a function table, evaluates the expression,
+                returns the value of the expression (an int in this grammar)'''
 
-		raise NotImplementedError(
-			'Expr.eval: virtual method.  Must be overridden.' )
+                raise NotImplementedError(
+                        'Expr.eval: virtual method.  Must be overridden.' )
 
-	def display( self, nt, ft, depth=0 ) :
-		'For debugging.'
-		raise NotImplementedError(
-			'Expr.display: virtual method.  Must be overridden.' )
+        def display( self, nt, ft, depth=0 ) :
+                'For debugging.'
+                raise NotImplementedError(
+                        'Expr.display: virtual method.  Must be overridden.' )
 
         def translate( self, nt=None, ft=None ) :
-		'For debugging.'
-		raise NotImplementedError(
-			'Expr.display: virtual method.  Must be overridden.' )
+                'For debugging.'
+                raise NotImplementedError(
+                        'Expr.display: virtual method.  Must be overridden.' )
 
 
 class Number( Expr ) :
-	'''Just integers'''
+        '''Just integers'''
 
-	def __init__( self, v=0 ) :
-		self.value = v
+        def __init__( self, v=0 ) :
+                self.value = v
                 self.tempAddr = TEMP_VARIABLE_FACTORY.get_temp()
 
-	def eval( self, nt, ft ) :
-		return self.value
+        def eval( self, nt, ft ) :
+                return self.value
 
-	def display( self, nt, ft, depth=0 ) :
-		print "%s%i" % (tabstop*depth, self.value)
+        def display( self, nt, ft, depth=0 ) :
+                print "%s%i" % (tabstop*depth, self.value)
 
         def __str__(self):
                 return str(self.value)
@@ -255,16 +300,16 @@ class Number( Expr ) :
 
 
 class Ident( Expr ) :
-	'''Stores the symbol'''
+        '''Stores the symbol'''
 
-	def __init__( self, name ) :
-		self.name = name
+        def __init__( self, name ) :
+                self.name = name
 
-	def eval( self, nt, ft ) :
-		return nt[ self.name ]
+        def eval( self, nt, ft ) :
+                return nt[ self.name ]
 
-	def display( self, nt, ft, depth=0 ) :
-		print "%s%s" % (tabstop*depth, self.name)
+        def display( self, nt, ft, depth=0 ) :
+                print "%s%s" % (tabstop*depth, self.name)
 
         def __str__(self):
                 return self.name
@@ -293,18 +338,18 @@ class Ident( Expr ) :
                 return instructions
 
 class Times( Expr ) :
-	'''expression for binary multiplication'''
+        '''expression for binary multiplication'''
 
-	def __init__( self, lhs, rhs ) :
-		'''lhs, rhs are Expr's, the operands'''
+        def __init__( self, lhs, rhs ) :
+                '''lhs, rhs are Expr's, the operands'''
 
-		# test type here?
-		# if type( lhs ) == type( Expr ) :
-		self.lhs = lhs
-		self.rhs = rhs
+                # test type here?
+                # if type( lhs ) == type( Expr ) :
+                self.lhs = lhs
+                self.rhs = rhs
 
-	def eval( self, nt, ft ) :
-		return self.lhs.eval( nt, ft ) * self.rhs.eval( nt, ft )
+        def eval( self, nt, ft ) :
+                return self.lhs.eval( nt, ft ) * self.rhs.eval( nt, ft )
 
         def translate(self, nt, ft ) :
                 log.debug("Entering translate method for Times")
@@ -312,43 +357,43 @@ class Times( Expr ) :
                 instructions = list()
                 return instructions
 
-	def display( self, nt, ft, depth=0 ) :
-		print "%sMULT" % (tabstop*depth)
-		self.lhs.display( nt, ft, depth+1 )
-		self.rhs.display( nt, ft, depth+1 )
-		#print "%s= %i" % (tabstop*depth, self.eval( nt, ft ))
+        def display( self, nt, ft, depth=0 ) :
+                print "%sMULT" % (tabstop*depth)
+                self.lhs.display( nt, ft, depth+1 )
+                self.rhs.display( nt, ft, depth+1 )
+                #print "%s= %i" % (tabstop*depth, self.eval( nt, ft ))
 
 
 class Plus( Expr ) :
-	'''expression for binary addition'''
+        '''expression for binary addition'''
 
-	def __init__( self, lhs, rhs ) :
-		self.lhs = lhs
-		self.rhs = rhs
+        def __init__( self, lhs, rhs ) :
+                self.lhs = lhs
+                self.rhs = rhs
 
-	def eval( self, nt, ft ) :
-		return self.lhs.eval( nt, ft ) + self.rhs.eval( nt, ft )
+        def eval( self, nt, ft ) :
+                return self.lhs.eval( nt, ft ) + self.rhs.eval( nt, ft )
 
         def translate(self, nt, ft ) :
                 log.debug("Entering translate method for Plus")
                 raise Exception("Not implemented")
-	
+        
         def display( self, nt, ft, depth=0 ) :
-		print "%sADD" % (tabstop*depth)
-		self.lhs.display( nt, ft, depth+1 )
-		self.rhs.display( nt, ft, depth+1 )
-		#print "%s= %i" % (tabstop*depth, self.eval( nt, ft ))
+                print "%sADD" % (tabstop*depth)
+                self.lhs.display( nt, ft, depth+1 )
+                self.rhs.display( nt, ft, depth+1 )
+                #print "%s= %i" % (tabstop*depth, self.eval( nt, ft ))
 
 
 class Minus( Expr ) :
-	'''expression for binary subtraction'''
+        '''expression for binary subtraction'''
 
-	def __init__( self, lhs, rhs ) :
-		self.lhs = lhs
-		self.rhs = rhs
+        def __init__( self, lhs, rhs ) :
+                self.lhs = lhs
+                self.rhs = rhs
 
-	def eval( self, nt, ft ) :
-		return self.lhs.eval( nt, ft ) - self.rhs.eval( nt, ft )
+        def eval( self, nt, ft ) :
+                return self.lhs.eval( nt, ft ) - self.rhs.eval( nt, ft )
 
         def translate( self, nt, ft ) :
                 log.debug("Entering translate method for Minus")
@@ -356,70 +401,70 @@ class Minus( Expr ) :
                 instructions = list()
                 return instructions()
 
-	def display( self, nt, ft, depth=0 ) :
-		print "%sSUB" % (tabstop*depth)
-		self.lhs.display( nt, ft, depth+1 )
-		self.rhs.display( nt, ft, depth+1 )
-		#print "%s= %i" % (tabstop*depth, self.eval( nt, ft ))
+        def display( self, nt, ft, depth=0 ) :
+                print "%sSUB" % (tabstop*depth)
+                self.lhs.display( nt, ft, depth+1 )
+                self.rhs.display( nt, ft, depth+1 )
+                #print "%s= %i" % (tabstop*depth, self.eval( nt, ft ))
 
 
 class FunCall( Expr ) :
-	'''stores a function call:
-	  - its name, and arguments'''
+        '''stores a function call:
+          - its name, and arguments'''
 
-	def __init__( self, name, argList ) :
-		self.name = name
-		self.argList = argList
+        def __init__( self, name, argList ) :
+                self.name = name
+                self.argList = argList
 
-	def eval( self, nt, ft ) :
-		return ft[ self.name ].apply( nt, ft, self.argList )
+        def eval( self, nt, ft ) :
+                return ft[ self.name ].apply( nt, ft, self.argList )
 
         def translate( self, nt, ft ) :
                 raise Exception("Functions not supported by mini compiler")
 
-	def display( self, nt, ft, depth=0 ) :
-		print "%sFunction Call: %s, args:" % (tabstop*depth, self.name)
-		for e in self.argList :
-			e.display( nt, ft, depth+1 )
+        def display( self, nt, ft, depth=0 ) :
+                print "%sFunction Call: %s, args:" % (tabstop*depth, self.name)
+                for e in self.argList :
+                        e.display( nt, ft, depth+1 )
 
 
 #-------------------------------------------------------
 
 class Stmt :
-	'''Virtual base class for statements in the language'''
+        '''Virtual base class for statements in the language'''
 
-	def __init__( self ) :
-		raise NotImplementedError(
-			'Stmt: pure virtual base class.  Do not instantiate' )
+        def __init__( self ) :
+                raise NotImplementedError(
+                        'Stmt: pure virtual base class.  Do not instantiate' )
 
-	def eval( self, nt, ft ) :
-		'''Given an environment and a function table, evaluates the expression,
-		returns the value of the expression (an int in this grammar)'''
+        def eval( self, nt, ft ) :
+                '''Given an environment and a function table, evaluates the expression,
+                returns the value of the expression (an int in this grammar)'''
 
-		raise NotImplementedError(
-			'Stmt.eval: virtual method.  Must be overridden.' )
+                raise NotImplementedError(
+                        'Stmt.eval: virtual method.  Must be overridden.' )
 
-	def display( self, nt, ft, depth=0 ) :
-		'For debugging.'
-		raise NotImplementedError(
-			'Stmt.display: virtual method.  Must be overridden.' )
+        def display( self, nt, ft, depth=0 ) :
+                'For debugging.'
+                raise NotImplementedError(
+                        'Stmt.display: virtual method.  Must be overridden.' )
 
 
 class AssignStmt( Stmt ) :
-	'''adds/modifies symbol in the current context'''
+        '''adds/modifies symbol in the current context'''
 
-	def __init__( self, name, rhs ) :
-		'''stores the symbol for the l-val, and the expressions which is the
-		rhs'''
-		self.name = name
-		self.rhs = rhs
+        def __init__( self, name, rhs ) :
+                '''stores the symbol for the l-val, and the expressions which is the
+                rhs'''
+                self.name = name
+                self.rhs = rhs
 
-	def eval( self, nt, ft ) :
-		nt[ self.name ] = self.rhs.eval( nt, ft )
+        def eval( self, nt, ft ) :
+                nt[ self.name ] = self.rhs.eval( nt, ft )
 
-	def display( self, nt, ft, depth=0 ) :
-		print "%sAssign: %s :=" % (tabstop*depth, self.name)
-		self.rhs.display( nt, ft, depth+1 )
+        def display( self, nt, ft, depth=0 ) :
+                print "%sAssign: %s :=" % (tabstop*depth, self.name)
+                self.rhs.display( nt, ft, depth+1 )
 
         def __str__( self ) :
                 return str(self.name)+" = "+str(self.rhs)
@@ -461,165 +506,165 @@ class AssignStmt( Stmt ) :
                 return instructions
 
 class DefineStmt( Stmt ) :
-	'''Binds a proc object to a name'''
+        '''Binds a proc object to a name'''
 
-	def __init__( self, name, proc ) :
-		self.name = name
-		self.proc = proc
+        def __init__( self, name, proc ) :
+                self.name = name
+                self.proc = proc
 
-	def eval( self, nt, ft ) :
-		ft[ self.name ] = self.proc
+        def eval( self, nt, ft ) :
+                ft[ self.name ] = self.proc
 
         def translate(self, nt, ft) :
                 raise Exception("Functions not supported for mini compiler")
 
-	def display( self, nt, ft, depth=0 ) :
-		print "%sDEFINE %s :" % (tabstop*depth, self.name)
-		self.proc.display( nt, ft, depth+1 )
+        def display( self, nt, ft, depth=0 ) :
+                print "%sDEFINE %s :" % (tabstop*depth, self.name)
+                self.proc.display( nt, ft, depth+1 )
 
 
 class IfStmt( Stmt ) :
 
-	def __init__( self, cond, tBody, fBody ) :
-		'''expects:
-		cond - expression (integer)
-		tBody - StmtList
-		fBody - StmtList'''
+        def __init__( self, cond, tBody, fBody ) :
+                '''expects:
+                cond - expression (integer)
+                tBody - StmtList
+                fBody - StmtList'''
 
-		self.cond = cond
-		self.tBody = tBody
-		self.fBody = fBody
+                self.cond = cond
+                self.tBody = tBody
+                self.fBody = fBody
 
-	def eval( self, nt, ft ) :
-		if self.cond.eval( nt, ft ) > 0 :
-			self.tBody.eval( nt, ft )
-		else :
-			self.fBody.eval( nt, ft )
+        def eval( self, nt, ft ) :
+                if self.cond.eval( nt, ft ) > 0 :
+                        self.tBody.eval( nt, ft )
+                else :
+                        self.fBody.eval( nt, ft )
 
-    def translate( self, nt, ft ) :
-        instructions = list()
+        def translate( self, nt, ft ) :
+            instructions = list()
 
-        # translate the conditional expression
-        (condCode, storageLocation) = translate(self.cond, nt, ft)
-        for instr in condCode :
-            instructions.append(instr)
+            # translate the conditional expression
+            (condCode, storageLocation) = translate(self.cond, nt, ft)
+            for instr in condCode :
+                instructions.append(instr)
 
-        # load result of condConde into accumulator
-        instructions.append(MachineCode(LD, storageLocation))
+            # load result of condConde into accumulator
+            instructions.append(MachineCode(LD, storageLocation))
 
-        # if result is false (<= 0), jump over trueBody
-        falseBodyLabel = LABEL_FACTORY.get_label()
-        instructions.append(MachineCode(JMN, falseBodyLabel))
-        instructions.append(MachineCode(JMZ, falseBodyLabel))
+            # if result is false (<= 0), jump over trueBody
+            falseBodyLabel = LABEL_FACTORY.get_label()
+            instructions.append(MachineCode(JMN, falseBodyLabel))
+            instructions.append(MachineCode(JMZ, falseBodyLabel))
 
-        # translate the trueBody
-        (trueBody, storageLocation) = translate(self.tBody, nt, ft)
-        for instr in trueBody :
-            instructions.append(instr)
+            # translate the trueBody
+            (trueBody, storageLocation) = translate(self.tBody, nt, ft)
+            for instr in trueBody :
+                instructions.append(instr)
 
-        # load the result of trueBody
-        instructions.append(MachineCode(LD, storageLocation))
+            # load the result of trueBody
+            instructions.append(MachineCode(LD, storageLocation))
 
-        # jump over the falseBody
-        nextStatement = LABEL_FACTORY.get_label()
-        instructions.append(MachineCode(JMP, nextStatement))
+            # jump over the falseBody
+            nextStatement = LABEL_FACTORY.get_label()
+            instructions.append(MachineCode(JMP, nextStatement))
 
-        # insert the falseBodyLabel
-        instructions.append(falseBodyLabel)
+            # insert the falseBodyLabel
+            instructions.append(falseBodyLabel)
 
-        # translate the flaseBody
-        (falseBody, storageLocation) = translate(self.fBody, nt, ft)
-        for instr in falseBody :
-            instructions.append(instr)
+            # translate the flaseBody
+            (falseBody, storageLocation) = translate(self.fBody, nt, ft)
+            for instr in falseBody :
+                instructions.append(instr)
 
-        # load resulf of falseBody
-        instructions.append(MachineCode(LD, storageLocation))
+            # load resulf of falseBody
+            instructions.append(MachineCode(LD, storageLocation))
 
-        # insert the nextStatement label
-        instructions.append(nextStatement)
-            
-        return instructions
+            # insert the nextStatement label
+            instructions.append(nextStatement)
+                
+            return instructions
 
 
-	def display( self, nt, ft, depth=0 ) :
-		print "%sIF" % (tabstop*depth)
-		self.cond.display( nt, ft, depth+1 )
-		print "%sTHEN" % (tabstop*depth)
-		self.tBody.display( nt, ft, depth+1 )
-		print "%sELSE" % (tabstop*depth)
-		self.fBody.display( nt, ft, depth+1 )
+        def display( self, nt, ft, depth=0 ) :
+                print "%sIF" % (tabstop*depth)
+                self.cond.display( nt, ft, depth+1 )
+                print "%sTHEN" % (tabstop*depth)
+                self.tBody.display( nt, ft, depth+1 )
+                print "%sELSE" % (tabstop*depth)
+                self.fBody.display( nt, ft, depth+1 )
 
 
 class WhileStmt( Stmt ) :
 
-	def __init__( self, cond, body ) :
-		self.cond = cond
-		self.body = body
+        def __init__( self, cond, body ) :
+                self.cond = cond
+                self.body = body
 
-	def eval( self, nt, ft ) :
-		while self.cond.eval( nt, ft ) > 0 :
-			self.body.eval( nt, ft )
+        def eval( self, nt, ft ) :
+                while self.cond.eval( nt, ft ) > 0 :
+                        self.body.eval( nt, ft )
 
-    def translate( self, nt, ft) :
-        instructions = list()
+        def translate( self, nt, ft) :
+                instructions = list()
 
-        # insert the loopBeginlabel
-        loopBeginLabel = LABEL_FACTORY.get_label()
-        instructions.append(loopBeginLabel)
+                # insert the loopBeginlabel
+                loopBeginLabel = LABEL_FACTORY.get_label()
+                instructions.append(loopBeginLabel)
 
-        # translate the body of the conditional
-        (condBody, storageLocation) = self.cond.translate(nt, ft)
+                # translate the body of the conditional
+                (condBody, storageLocation) = self.cond.translate(nt, ft)
 
-        for instr in condBody :
-            instructions.append(instr)
+                for instr in condBody :
+                        instructions.append(instr)
 
-        # print to log the result of condBody
-        log.debug(instr)
+                # print to log the result of condBody
+                log.debug(instr)
 
-        # load the result of condBody
-        instructions.append(MachineCode(LD, storageLocation))
+                # load the result of condBody
+                instructions.append(MachineCode(LD, storageLocation))
 
-        # if the result is false (<= 0), jump to loopEndLabel
-        loopEndLabel = LABEL_FACTORY.get_label()
-        instructions.append(MachineCode(JMN, loopEndLabel))
-        instructions.append(MachineCode(JMZ, loopEndLabel))
+                # if the result is false (<= 0), jump to loopEndLabel
+                loopEndLabel = LABEL_FACTORY.get_label()
+                instructions.append(MachineCode(JMN, loopEndLabel))
+                instructions.append(MachineCode(JMZ, loopEndLabel))
 
-        # translate the loopBody
-        (loopBody, storageLocation) = self.body.translate(nt, ft)
-        for instr in loopBody :
-            instructions.append(instr)
+                # translate the loopBody
+                (loopBody, storageLocation) = self.body.translate(nt, ft)
+                for instr in loopBody :
+                        instructions.append(instr)
 
-        # load the result of loopBody
-        instructions.append(MachineCode(LD, storageLocation))
+                # load the result of loopBody
+                        instructions.append(MachineCode(LD, storageLocation))
 
-        # go back to the begining of the loop
-        instructions.append(MachineCode(JMP, loopBeginLabel))
+                # go back to the begining of the loop
+                        instructions.append(MachineCode(JMP, loopBeginLabel))
 
-        # insert the loopEndLabel
-        instructions.append(loopEndLabel)
+                # insert the loopEndLabel
+                instructions.append(loopEndLabel)
 
-        return instructions
+                return instructions
 
-	def display( self, nt, ft, depth=0 ) :
-		print "%sWHILE" % (tabstop*depth)
-		self.cond.display( nt, ft, depth+1 )
-		print "%sDO" % (tabstop*depth)
-		self.body.display( nt, ft, depth+1 )
+        def display( self, nt, ft, depth=0 ) :
+                print "%sWHILE" % (tabstop*depth)
+                self.cond.display( nt, ft, depth+1 )
+                print "%sDO" % (tabstop*depth)
+                self.body.display( nt, ft, depth+1 )
 
 #-------------------------------------------------------
 
 class StmtList :
-	'''builds/stores a list of Stmts'''
+        '''builds/stores a list of Stmts'''
 
-	def __init__( self ) :
-		self.sl = []
+        def __init__( self ) :
+                self.sl = []
 
-	def insert( self, stmt ) :
-		self.sl.insert( 0, stmt )
+        def insert( self, stmt ) :
+                self.sl.insert( 0, stmt )
 
-	def eval( self, nt, ft ) :
-		for s in self.sl :
-			s.eval( nt, ft )
+        def eval( self, nt, ft ) :
+                for s in self.sl :
+                        s.eval( nt, ft )
         
         def translate( self, nt, ft ) :
                 instructions = list()
@@ -627,72 +672,88 @@ class StmtList :
                         instructions.append(s.translate( nt, ft ))
                 return instructions
 
-	def display( self, nt, ft, depth=0 ) :
-		print "%sSTMT LIST" % (tabstop*depth)
-		for s in self.sl :
-			s.display( nt, ft, depth+1 )
+        def display( self, nt, ft, depth=0 ) :
+                print "%sSTMT LIST" % (tabstop*depth)
+                for s in self.sl :
+                        s.display( nt, ft, depth+1 )
 
 
 class Proc :
-	'''stores a procedure (formal params, and the body)
+        '''stores a procedure (formal params, and the body)
 
-	Note that, while each function gets its own environment, we decided not to
-	allow side-effects, so, no access to any outer contexts.  Thus, nesting
-	functions is legal, but no different than defining them all in the global
-	environment.  Further, all calls are handled the same way, regardless of
-	the calling environment (after the actual args are evaluated); the proc
-	doesn't need/want/get an outside environment.'''
+        Note that, while each function gets its own environment, we decided not to
+        allow side-effects, so, no access to any outer contexts.  Thus, nesting
+        functions is legal, but no different than defining them all in the global
+        environment.  Further, all calls are handled the same way, regardless of
+        the calling environment (after the actual args are evaluated); the proc
+        doesn't need/want/get an outside environment.'''
 
-	def __init__( self, paramList, body ) :
-		'''expects a list of formal parameters (variables, as strings), and a
-		StmtList'''
+        def __init__( self, paramList, body ) :
+                '''expects a list of formal parameters (variables, as strings), and a
+                StmtList'''
 
-		self.parList = paramList
-		self.body = body
+                self.parList = paramList
+                self.body = body
 
-	def apply( self, nt, ft, args ) :
-		newContext = {}
+        def apply( self, nt, ft, args ) :
+                newContext = {}
 
-		# sanity check, # of args
-		if len( args ) is not len( self.parList ) :
-			print "Param count does not match:"
-			sys.exit( 1 )
+                # sanity check, # of args
+                if len( args ) is not len( self.parList ) :
+                        print "Param count does not match:"
+                        sys.exit( 1 )
 
-		# bind parameters in new name table (the only things there right now)
-			# use zip, bastard
-		for i in range( len( args )) :
-			newContext[ self.parList[i] ] = args[i].eval( nt, ft )
+                # bind parameters in new name table (the only things there right now)
+                        # use zip, bastard
+                for i in range( len( args )) :
+                        newContext[ self.parList[i] ] = args[i].eval( nt, ft )
 
-		# evaluate the function body using the new name table and the old (only)
-		# function table.  Note that the proc's return value is stored as
-		# 'return in its nametable
+                # evaluate the function body using the new name table and the old (only)
+                # function table.  Note that the proc's return value is stored as
+                # 'return in its nametable
 
-		self.body.eval( newContext, ft )
-		if newContext.has_key( returnSymbol ) :
-			return newContext[ returnSymbol ]
-		else :
-			print "Error:  no return value"
-			sys.exit( 2 )
+                self.body.eval( newContext, ft )
+                if newContext.has_key( returnSymbol ) :
+                        return newContext[ returnSymbol ]
+                else :
+                        print "Error:  no return value"
+                        sys.exit( 2 )
 
-	def display( self, nt, ft, depth=0 ) :
-		print "%sPROC %s :" % (tabstop*depth, str(self.parList))
-		self.body.display( nt, ft, depth+1 )
+        def display( self, nt, ft, depth=0 ) :
+                print "%sPROC %s :" % (tabstop*depth, str(self.parList))
+                self.body.display( nt, ft, depth+1 )
 
 
 class Program :
 
-	def __init__( self, stmtList ) :
-		self.stmtList = stmtList
-		self.nameTable = {}
-		self.funcTable = {}
+        def __init__( self, stmtList ) :
+                self.stmtList = stmtList
+                self.nameTable = {}
+                self.funcTable = {}
 
-	def eval( self ) :
-		self.stmtList.eval( self.nameTable, self.funcTable )
+        def eval( self ) :
+                self.stmtList.eval( self.nameTable, self.funcTable )
 
         def translate( self ) :
                 nestedStmtCode = self.stmtList.translate(self.nameTable, self.funcTable)
                 flattenedStmtCode = list(self.flattenList(nestedStmtCode))
                 return flattenedStmtCode
+
+        def link( self, machineCode ) :
+            Linker.linkAddressesToSymbolTable(GLOBAL_SYMBOL_TABLE)
+            for key in GLOBAL_SYMBOL_TABLE.iterkeys() :
+                log.debug(key)
+            for line in machineCode :
+                log.debug("Looking to link operand %s " % line.operand)
+                line.operand = GLOBAL_SYMBOL_TABLE[line.operand].address
+            return machineCode 
+
+
+        def compile( self ) :
+            machineCode = self.translate()
+            machineCode = self.optimize(machineCode)
+            machineCode = self.link(machineCode)
+            return machineCode
 
         def performPeepholeOptimization(self, machineCode ) :
                 '''Removes redundant LD statements when desired value is already in accumulator'''
@@ -721,15 +782,15 @@ class Program :
                         else :
                                 yield element
 
-	def dump( self ) :
-		print "Dump of Symbol Table"
-		print "Name Table"
-		for k in self.nameTable :
-			print "  %s -> %s " % ( str(k), str(self.nameTable[k]) )
-		print "Function Table"
-		for k in self.funcTable :
-			print "  %s" % str(k)
+        def dump( self ) :
+                print "Dump of Symbol Table"
+                print "Name Table"
+                for k in self.nameTable :
+                        print "  %s -> %s " % ( str(k), str(self.nameTable[k]) )
+                print "Function Table"
+                for k in self.funcTable :
+                        print "  %s" % str(k)
 
-	def display( self, depth=0 ) :
-		print "%sPROGRAM :" % (tabstop*depth)
-		self.stmtList.display( self.nameTable, self.funcTable )
+        def display( self, depth=0 ) :
+                print "%sPROGRAM :" % (tabstop*depth)
+                self.stmtList.display( self.nameTable, self.funcTable )
