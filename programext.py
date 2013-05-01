@@ -198,7 +198,10 @@ class Number( Expr ) :
                 return str(self.value)
 
         def __eq__(self,other):
-                return self.value == other.value
+                if not(isinstance(other,Number)) :
+                    return False
+                else :
+                    return self.value == other.value
 
         def __ne__(self,other):
                 return not self.__eq__(other)
@@ -292,6 +295,7 @@ class Times( Expr ) :
 
         def translate(self, nt, ft ) :
                 log.debug("Entering translate method for Times")
+                raise Exception("Not implemented")
                 instructions = list()
                 return instructions
 
@@ -314,8 +318,9 @@ class Plus( Expr ) :
 
         def translate(self, nt, ft ) :
                 log.debug("Entering translate method for Plus")
-
-	def display( self, nt, ft, depth=0 ) :
+                raise Exception("Not implemented")
+	
+        def display( self, nt, ft, depth=0 ) :
 		print "%sADD" % (tabstop*depth)
 		self.lhs.display( nt, ft, depth+1 )
 		self.rhs.display( nt, ft, depth+1 )
@@ -334,6 +339,7 @@ class Minus( Expr ) :
 
         def translate( self, nt, ft ) :
                 log.debug("Entering translate method for Minus")
+                raise Exception("Not implemented")
                 instructions = list()
                 return instructions()
 
@@ -656,6 +662,24 @@ class Program :
                 nestedStmtCode = self.stmtList.translate(self.nameTable, self.funcTable)
                 flattenedStmtCode = list(self.flattenList(nestedStmtCode))
                 return flattenedStmtCode
+
+        def performPeepholeOptimization(self, machineCode ) :
+                '''Removes redundant LD statements when desired value is already in accumulator'''
+                optimizedCode = list()
+
+                for i in range(len(machineCode)) :
+                    prevInstr = machineCode[i-1]
+                    currentInstr = machineCode[i]
+                    if(prevInstr.opcode == ST and currentInstr.opcode == LD and (prevInstr.operand == currentInstr.operand)) :
+                        log.debug("Removing redundant LD statement")
+                    else :
+                        optimizedCode.append(currentInstr)
+
+                return optimizedCode                         
+
+        def optimize( self, machineCode ) :
+                optimizedCode = self.performPeepholeOptimization(machineCode)
+                return optimizedCode
 
         def flattenList( self, iterableList ) :
                 iterator = iter(iterableList)

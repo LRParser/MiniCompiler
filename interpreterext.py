@@ -126,8 +126,12 @@ def p_program( p ) :
   print 'Running Program'
   P.eval()
   P.dump()
-  print 'Translating Program'
+  log.info('Translating Program')
   instructions = P.translate()
+  for inst in instructions :
+    log.debug(inst)
+  log.info('Optimizing Program')
+  instructions = P.optimize(instructions)
   for inst in instructions :
     log.debug(inst)
 
@@ -197,7 +201,7 @@ def p_fact_funcall( p ) :
 
 def p_assn( p ) :
 	'assign_stmt : IDENT ASSIGNOP expr'
-	p[0] = AssignStmt( Ident(p[1]), p[3] )
+	p[0] = AssignStmt( p[1], p[3] )
 
 def p_while( p ) :
 	'while_stmt : WHILE expr DO stmt_list OD'
