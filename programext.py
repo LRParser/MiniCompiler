@@ -61,7 +61,7 @@ log = logging.getLogger('programext')
 
 ####  CONSTANTS   ################
 
-	# the variable name used to store a proc's return value
+# the variable name used to store a proc's return value
 returnSymbol = 'return'
 
 tabstop = '  ' # 2 spaces
@@ -80,9 +80,13 @@ CAL = 'CAL'
 HLT = 'HLT'
 
 ######   SYMBOL TABLE ENTRY TYPE#####
-CONST = 1
-VAR = 2
-TEMP = 3
+CONST = "const"
+VAR = "var"
+TEMP = "temp"
+
+###### ADDRESS CONSTANTS ############
+
+UNKNOWN = "?" 
 
 ######   CLASSES   ##################
 class MachineCode(object):
@@ -136,7 +140,7 @@ TEMP_VARIABLE_FACTORY = TempVariableFactory()
 
 class SymbolTableEntry(object):
 
-    def __init__(self, value=None, entryType=None, address=-1):
+    def __init__(self, value=None, entryType=None, address=UNKNOWN):
         """ Class representing a Symbol Table Entry
 
         :param value: Value of the entry
@@ -148,14 +152,19 @@ class SymbolTableEntry(object):
         self.address = address
 
     def __str__(self):
-        return "%s %s %s" % (self.value, self.entryType, self.address)
+        return "Value: %s Type: %s Address: %s" % (self.value, self.entryType, self.address)
 
 class TranslateUtils(object) :
+
+        @staticmethod
+        def dumpSymbolTable(st) :
+            for entry in st :
+                log.debug("Name: %s %s" % (entry, st[entry]))
+
         @staticmethod
         def dumpGlobalSymbolTable() :
                 log.debug("Dumping entries in global symbol table: ")
-                for entry in GLOBAL_SYMBOL_TABLE :
-                        log.debug("  %s" % entry)
+                TranslateUtils.dumpSymbolTable(GLOBAL_SYMBOL_TABLE)
 
 class Expr(object) :
 	'''Virtual base class for expressions in the language'''
@@ -207,7 +216,7 @@ class Number( Expr ) :
                 return not self.__eq__(other)
 
         def __hash__(self):
-                return self.value.__hash__()
+                return hash(self.value)
 
         def translate( self, nt=None, ft=None ) :
                 #check to see if number is in the symbol table
@@ -219,9 +228,10 @@ class Number( Expr ) :
                 else:
                         log.debug("Didn't find %s in the symbol table" % self)
                         TranslateUtils.dumpGlobalSymbolTable()
-                        log.debug("Putting %s into symbol table" % self)
                         entry = SymbolTableEntry(self.value, CONST)
+                        log.debug("Associating %s in global symbol table with entry %s" % (self, entry))
                         GLOBAL_SYMBOL_TABLE[self] = entry
+                        TranslateUtils.dumpGlobalSymbolTable()
 
                 instructions = list()
                 instructions.append(MachineCode(LD,self))
