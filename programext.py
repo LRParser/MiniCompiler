@@ -49,7 +49,7 @@
 import sys
 import logging
 
-
+"This symbol table should contain: {Label : SymbolTableEntry}"
 GLOBAL_SYMBOL_TABLE = dict()
 
 logging.basicConfig(
@@ -172,6 +172,33 @@ class Number( Expr ) :
 	def display( self, nt, ft, depth=0 ) :
 		print "%s%i" % (tabstop*depth, self.value)
 
+        def __str__(self):
+                return str(self.value)
+
+        def __eq__(self,other):
+                return self.value == other.value
+
+        def __ne__(self,other):
+                return not self.__eq__(other)
+
+        def translate( self, nt=None, ft=None ) :
+                #check to see if number is in the symbol table
+                entry = None
+                if self in GLOBAL_SYMBOL_TABLE:
+                        log.debug("Found %s in the symbol table" % self)
+                        entry = GLOBAL_SYMBOL_TABLE[self]
+                else:
+                    log.debug("Putting %s into symbol table" % self)
+                    entry = SymbolTableEntry(self.value, CONST)
+                    GLOBAL_SYMBOL_TABLE[self] = entry
+
+                #self add to symbol table
+
+                instructions = list()
+                instructions.append(MachineCode(LD,self))
+                instructions.append(MachineCode(ST,TEMP_VARIABLE_FACTORY.get_temp()))
+
+                return instructions
 class Ident( Expr ) :
 	'''Stores the symbol'''
 
