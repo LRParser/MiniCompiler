@@ -467,7 +467,7 @@ class AssignStmt( Stmt ) :
 		self.rhs.display( nt, ft, depth+1 )
 
         def __str__( self ) :
-                return str(self.name)+" = "+str(self.rhs)
+                return self.name
 
         def __eq__( self, other ) :
                 if(isinstance(other,AssignStmt)) :
