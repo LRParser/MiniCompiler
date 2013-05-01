@@ -158,21 +158,35 @@ class SymbolTable(dict) :
             super(SymbolTable,self).__init__()
 
         def dump(self) :
+            log.debug("Dumping entries in symbol table: ")
+            self.summarize()
             for entry in self :
-                log.debug("Dumping entries in symbol table: ")
                 log.debug("Name: %s %s" % (entry, self[entry]))
 
-        def countOfVars(self) :
-            return 0
+        def countOf(self, et) :
+            return len(filter(lambda x: x.entryType == et, self.itervalues()))
 
-        def countOfConsts(self) :
-            return 0
-        
-        def countOfTemps(self) :
-            return 0
+        def summarize(self) :
+            log.debug("Num_Vars = %d, Num_Consts = %d, Num_Temps = %d" % ( self.countOf(VAR), self.countOf(CONST), self.countOf(TEMP) ) )
 
 "This symbol table should contain: {Label : SymbolTableEntry}"
 GLOBAL_SYMBOL_TABLE = SymbolTable()
+
+class SymbolTableUtils :
+        
+        @staticmethod
+        def createOrGetSymbolTableReference(key, entryVal, entryType ) :
+                entry = None
+                if key in GLOBAL_SYMBOL_TABLE:
+                        log.debug("Found %s in the symbol table" % key)
+                        entry = GLOBAL_SYMBOL_TABLE[key]
+                else:
+                        log.debug("Didn't find %s in the symbol table" % key)
+                        GLOBAL_SYMBOL_TABLE.dump()
+                        log.debug("Putting %s into symbol table" % key)
+                        entry = SymbolTableEntry(entryVal, entryType)
+                        GLOBAL_SYMBOL_TABLE[key] = entry
+                return entry
 
 class Expr(object) :
 	'''Virtual base class for expressions in the language'''
@@ -197,6 +211,7 @@ class Expr(object) :
 		'For debugging.'
 		raise NotImplementedError(
 			'Expr.display: virtual method.  Must be overridden.' )
+
 
 class Number( Expr ) :
 	'''Just integers'''
@@ -229,17 +244,8 @@ class Number( Expr ) :
         def translate( self, nt=None, ft=None ) :
                 #check to see if number is in the symbol table
                 log.debug("Entering translate method for Number %s" % self)
-                entry = None
-                if self in GLOBAL_SYMBOL_TABLE:
-                        log.debug("Found %s in the symbol table" % self)
-                        entry = GLOBAL_SYMBOL_TABLE[self]
-                else:
-                        log.debug("Didn't find %s in the symbol table" % self)
-                        GLOBAL_SYMBOL_TABLE.dump()
-                        entry = SymbolTableEntry(self.value, CONST)
-                        log.debug("Associating %s in global symbol table with entry %s" % (self, entry))
-                        GLOBAL_SYMBOL_TABLE[self] = entry
-                        GLOBAL_SYMBOL_TABLE.dump()
+
+                entry = SymbolTableUtils.createOrGetSymbolTableReference(self,self.value,CONST)
 
                 instructions = list()
                 instructions.append(MachineCode(LD,self))
@@ -267,10 +273,8 @@ class Ident( Expr ) :
                 log.debug("Calling __eq__ on %s and %s" % (self, other))
                 if(isinstance(other,Ident)) :
                         return self.name == other.name
-                elif(isinstance(other,str)):
-                        return self.name == other
                 else :
-                        raise Exception("Invalid Ident Comparison")
+                        return False
 
         def __ne__(self, other):
                 return not self.__eq__(other)
@@ -278,20 +282,11 @@ class Ident( Expr ) :
         def __hash__(self):
                 return self.name.__hash__()
 
+
         def translate( self, nt=None, ft=None ) :
                 #check to see if Ident is in the symbol table
                 log.debug("Entering translate method for Ident: %s", self)
-                entry = None
-                if self in GLOBAL_SYMBOL_TABLE:
-                        log.debug("Found %s in the symbol table" % self)
-                        entry = GLOBAL_SYMBOL_TABLE[self]
-                else:
-                        log.debug("Didn't find %s in the symbol table" % self)
-                        GLOBAL_SYMBOL_TABLE.dump()
-                        log.debug("Putting %s into symbol table" % self)
-                        entry = SymbolTableEntry(self.name, VAR, self.name)
-                        GLOBAL_SYMBOL_TABLE[self] = entry
-               
+                entry = SymbolTableUtils.createOrGetSymbolTableReference(self,self.name,VAR)
                 instructions = list()
                 instructions.append(MachineCode(LD,entry.address))
 
@@ -429,6 +424,18 @@ class AssignStmt( Stmt ) :
         def __str__( self ) :
                 return str(self.name)+" = "+str(self.rhs)
 
+        def __eq__( self, other ) :
+                if(isinstance(other,AssignStmt)) :
+                    return self.name == other.name
+                else :
+                    return False
+
+        def __ne__( self, other ) :
+            return not (self.__eq__(other))
+        
+        def __hash__( self ) :
+            return hash(self.name)
+
         def translate(self, nt, ft) :
                 '''Produces (unlinked) machine code to load the locates of RHS via LD, and store into location of LHS via LD'''
                 log.debug("Entering translate method for AssignStmt: %s" % self)
@@ -439,14 +446,18 @@ class AssignStmt( Stmt ) :
                 instructions.append(rhsCode)
                 log.debug("RHS of AssignStmt translated")
                 
-                # The value computed by the RHS is now in the accumulator. Store it in the memory address pointed to by the Ident on the LHS
-#                lhsStEntry = self.name.translate(nt,ft)[0]
+                # The value computed by the RHS is now in the accumulator. First, ensure the Ident on LHS is in the symbol table for later linking
+                entry = SymbolTableUtils.createOrGetSymbolTableReference(self,self.name,VAR)          
+
+                # First, ensure the Ident is in the symbol table. Then, store the value in the accumulator in the memory address pointed to by the Ident on the LHS
                 ldCode = MachineCode(LD,rhsCode[-1].operand)
                 instructions.append(ldCode) 
                 assignCode = MachineCode(ST,self.name)
                 instructions.append(assignCode)
                 log.debug("LHS of AssignStmt translated")
-                
+      
+                GLOBAL_SYMBOL_TABLE.dump()
+          
                 return instructions
 
 class DefineStmt( Stmt ) :
