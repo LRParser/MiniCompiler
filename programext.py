@@ -416,8 +416,10 @@ class AssignStmt( Stmt ) :
                 log.debug("RHS of AssignStmt translated")
                 
                 # The value computed by the RHS is now in the accumulator. Store it in the memory address pointed to by the Ident on the LHS
-                lhsStEntry = self.name.translate(nt,ft)[0] 
-                assignCode = MachineCode(ST,lhsStEntry.operand)
+#                lhsStEntry = self.name.translate(nt,ft)[0]
+                ldCode = MachineCode(LD,rhsCode[-1].operand)
+                instructions.append(ldCode) 
+                assignCode = MachineCode(ST,self.name)
                 instructions.append(assignCode)
                 log.debug("LHS of AssignStmt translated")
                 
