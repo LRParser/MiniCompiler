@@ -14,7 +14,7 @@ RUN_TEST1=$(PYTHON) $(TEST_DIR)/$(TESTER1)
 LINT_FILE=pylint.rc
 
 
-.PHONY : clean test lint build view-part1 view-part2 view-func1 view-func2 tags
+.PHONY : clean test lint build tags
 
 ram:
 	@g++ ram.cpp main.cpp -o ram
@@ -34,6 +34,7 @@ test-part1: clean
 	@diff $(TEST_ANSWER_DIR1) $(TEST_OUTPUT_DIR1)
 
 
+
 test: test-part1
 
 clean:
@@ -43,6 +44,6 @@ clean:
 
 build : clean
 
-run-part1: clean
+compile: clean
 	@$(PYTHON) $(INTERPRET)
 

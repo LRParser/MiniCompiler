@@ -20,6 +20,7 @@
 import sys
 from programext import *
 
+
 # Debug Flag
 DEBUG = None
 
@@ -125,6 +126,10 @@ def p_program( p ) :
   print 'Running Program'
   P.eval()
   P.dump()
+  print 'Translating Program'
+  instructions = P.translate()
+  for inst in instructions :
+    log.debug(inst)
 
 def p_stmt_list( p ) :
  '''stmt_list : stmt SEMICOLON stmt_list

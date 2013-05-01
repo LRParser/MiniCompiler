@@ -75,6 +75,7 @@ MUL = 'MUL'
 JMP = 'JMP'
 JMI = 'JMI'
 JMN = 'JMN'
+JMZ = 'JMZ'
 CAL = 'CAL'
 HLT = 'HLT'
 
@@ -243,7 +244,7 @@ class Ident( Expr ) :
                         entry = GLOBAL_SYMBOL_TABLE[self]
                 else:
                     log.debug("Putting %s into symbol table" % self)
-                    entry = SymbolTableEntry(self.value, VAR)
+                    entry = SymbolTableEntry(self.name, VAR)
                     GLOBAL_SYMBOL_TABLE[self] = entry
 
                 #self add to symbol table
@@ -269,6 +270,11 @@ class Times( Expr ) :
 	def eval( self, nt, ft ) :
 		return self.lhs.eval( nt, ft ) * self.rhs.eval( nt, ft )
 
+        def translate(self, nt, ft ) :
+                log.debug("TODO")
+                instructions = list()
+                return instructions
+
 	def display( self, nt, ft, depth=0 ) :
 		print "%sMULT" % (tabstop*depth)
 		self.lhs.display( nt, ft, depth+1 )
@@ -285,6 +291,9 @@ class Plus( Expr ) :
 
 	def eval( self, nt, ft ) :
 		return self.lhs.eval( nt, ft ) + self.rhs.eval( nt, ft )
+
+        def translate(self, nt, ft ) :
+                log.debug("TODO")
 
 	def display( self, nt, ft, depth=0 ) :
 		print "%sADD" % (tabstop*depth)
@@ -303,6 +312,11 @@ class Minus( Expr ) :
 	def eval( self, nt, ft ) :
 		return self.lhs.eval( nt, ft ) - self.rhs.eval( nt, ft )
 
+        def translate( self, nt, ft ) :
+                log.debug("TODO")
+                instructions = list()
+                return instructions()
+
 	def display( self, nt, ft, depth=0 ) :
 		print "%sSUB" % (tabstop*depth)
 		self.lhs.display( nt, ft, depth+1 )
@@ -320,6 +334,9 @@ class FunCall( Expr ) :
 
 	def eval( self, nt, ft ) :
 		return ft[ self.name ].apply( nt, ft, self.argList )
+
+        def translate( self, nt, ft ) :
+                raise Exception("Functions not supported by mini compiler")
 
 	def display( self, nt, ft, depth=0 ) :
 		print "%sFunction Call: %s, args:" % (tabstop*depth, self.name)
@@ -367,8 +384,10 @@ class AssignStmt( Stmt ) :
 
         def translate(self, nt, ft) :
                 '''Produces (unlinked) machine code to load the locates of RHS via LD, and store into location of LHS via LD'''
-                ldStmt = MachineCode(LD,self.rhs.eval( nt, ft )) # E.g., for X=Y, this says LD Y       
-                stStmt = MachineCode(ST,self.name) # This says ST X. Todo: Add logic for symbol table lookup
+                instructions = list()
+                instructions.append(MachineCode(LD,self.rhs.eval( nt, ft ))) # E.g., for X=Y, this says LD Y       
+                instructions.append(MachineCode(ST,self.name)) # This says ST X. Todo: Add logic for symbol table lookup
+                return instructions
 
 class DefineStmt( Stmt ) :
 	'''Binds a proc object to a name'''
@@ -379,6 +398,9 @@ class DefineStmt( Stmt ) :
 
 	def eval( self, nt, ft ) :
 		ft[ self.name ] = self.proc
+
+        def translate(self, nt, ft) :
+                raise Exception("Functions not supported for mini compiler")
 
 	def display( self, nt, ft, depth=0 ) :
 		print "%sDEFINE %s :" % (tabstop*depth, self.name)
@@ -467,6 +489,10 @@ class WhileStmt( Stmt ) :
 		while self.cond.eval( nt, ft ) > 0 :
 			self.body.eval( nt, ft )
 
+        def translate( self, nt, ft ) :
+                self.cond.translate(nt, ft)
+                self.body.translate(nt, ft)
+
         def translate( self, nt, ft) :
             instructions = list()
 
@@ -475,12 +501,12 @@ class WhileStmt( Stmt ) :
             instructions.append(loopBeginLabel)
 
             # translate the body of the conditional
-            condBody = translate(self.cond, nt, ft)
+            condBody = self.cond.translate(nt, ft)
             for instr in condBody :
                 instructions.append(instr)
 
-            # load the result of condBody
-            print str(instr)
+            # print to log the result of condBody
+            log.debug(instr)
 
             # if the result is false (<= 0), jump to loopEndLabel
             loopEndLabel = LABEL_FACTORY.get_label()
@@ -488,7 +514,7 @@ class WhileStmt( Stmt ) :
             instructions.append(MachineCode(JMZ, loopEndLabel))
 
             # translate the loopBody
-            loopBody = translate(self.body, nt, ft)
+            loopBody = self.body.translate(nt, ft)
             for instr in loopBody :
                 instructions.append(instr)
 
@@ -520,6 +546,12 @@ class StmtList :
 	def eval( self, nt, ft ) :
 		for s in self.sl :
 			s.eval( nt, ft )
+        
+        def translate( self, nt, ft ) :
+                instructions = list()
+                for s in self.sl :
+                        instructions.append(s.translate( nt, ft ))
+                return instructions
 
 	def display( self, nt, ft, depth=0 ) :
 		print "%sSTMT LIST" % (tabstop*depth)
@@ -582,6 +614,20 @@ class Program :
 
 	def eval( self ) :
 		self.stmtList.eval( self.nameTable, self.funcTable )
+
+        def translate( self ) :
+                nestedStmtCode = self.stmtList.translate(self.nameTable, self.funcTable)
+                flattenedStmtCode = list(self.flattenList(nestedStmtCode))
+                return flattenedStmtCode
+
+        def flattenList( self, iterableList ) :
+                iterator = iter(iterableList)
+                for element in iterator :
+                        if isinstance(element, (list, tuple)) :
+                                for nestedElement in self.flattenList(element):
+                                        yield nestedElement
+                        else :
+                                yield element
 
 	def dump( self ) :
 		print "Dump of Symbol Table"
