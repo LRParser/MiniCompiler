@@ -49,7 +49,7 @@
 import sys
 import logging
 
-
+"This symbol table should contain: {Label : SymbolTableEntry}"
 GLOBAL_SYMBOL_TABLE = dict()
 
 logging.basicConfig(
@@ -78,6 +78,11 @@ JMN = 'JMN'
 CAL = 'CAL'
 HLT = 'HLT'
 
+######   SYMBOL TABLE ENTRY TYPE#####
+CONST = 1
+VAR = 2
+TEMP = 3
+
 ######   CLASSES   ##################
 class MachineCode(object):
 
@@ -102,7 +107,7 @@ class TempVariable(Label):
         super(TempVariable, self).__init__("T%s" % number)
 
 
-class TempVariableFactory():
+class TempVariableFactory(object):
 
     def __init__(self):
         self.__temps = list()
@@ -115,6 +120,21 @@ class TempVariableFactory():
 
 TEMP_VARIABLE_FACTORY = TempVariableFactory()
 
+class SymbolTableEntry(object):
+
+    def __init__(self, value=None, entryType=None, address=None):
+        """ Class representing a Symbol Table Entry
+
+        :param value: Value of the entry
+        :param entryType: Type, Constant, Variable, Temp
+        :param address: Memory address where located.
+        """
+        self.value = value
+        self.entryType = entryType
+        self.address = address
+
+    def __str__(self):
+        return "%s %s %s" % (self.value, self.entryType, self.address)
 
 class Expr(object) :
 	'''Virtual base class for expressions in the language'''
@@ -152,6 +172,35 @@ class Number( Expr ) :
 	def display( self, nt, ft, depth=0 ) :
 		print "%s%i" % (tabstop*depth, self.value)
 
+        def __str__(self):
+                return str(self.value)
+
+        def __eq__(self,other):
+                return self.value == other.value
+
+        def __ne__(self,other):
+                return not self.__eq__(other)
+
+        def translate( self, nt=None, ft=None ) :
+                #check to see if number is in the symbol table
+                entry = None
+                if self in GLOBAL_SYMBOL_TABLE:
+                        log.debug("Found %s in the symbol table" % self)
+                        entry = GLOBAL_SYMBOL_TABLE[self]
+                else:
+                    log.debug("Putting %s into symbol table" % self)
+                    entry = SymbolTableEntry(self.value, CONST)
+                    GLOBAL_SYMBOL_TABLE[self] = entry
+
+                #self add to symbol table
+
+                instructions = list()
+                instructions.append(MachineCode(LD,self))
+                instructions.append(MachineCode(ST,TEMP_VARIABLE_FACTORY.get_temp()))
+
+                return instructions
+
+
 class Ident( Expr ) :
 	'''Stores the symbol'''
 
@@ -163,6 +212,34 @@ class Ident( Expr ) :
 
 	def display( self, nt, ft, depth=0 ) :
 		print "%s%s" % (tabstop*depth, self.name)
+
+        def __str__(self):
+                return self.name
+
+        def __eq__(self, other):
+                return self.name == other.name
+
+        def __ne__(self, other):
+                return not self.__eq__(other)
+
+        def translate( self, nt=None, ft=None ) :
+                #check to see if Ident is in the symbol table
+                entry = None
+                if self in GLOBAL_SYMBOL_TABLE:
+                        log.debug("Found %s in the symbol table" % self)
+                        entry = GLOBAL_SYMBOL_TABLE[self]
+                else:
+                    log.debug("Putting %s into symbol table" % self)
+                    entry = SymbolTableEntry(self.value, VAR)
+                    GLOBAL_SYMBOL_TABLE[self] = entry
+
+                #self add to symbol table
+
+                instructions = list()
+                instructions.append(MachineCode(LD,self))
+                instructions.append(MachineCode(ST,TEMP_VARIABLE_FACTORY.get_temp()))
+
+                return instructions
 
 
 class Times( Expr ) :
