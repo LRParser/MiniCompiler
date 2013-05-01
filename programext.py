@@ -471,12 +471,12 @@ class IfStmt( Stmt ) :
             instructions = list()
 
             # translate the conditional expression
-            condCode = translate(self.cond, nt, ft)
+            (condCode, storageLocation) = translate(self.cond, nt, ft)
             for instr in condCode :
                 instructions.append(instr)
 
             # load result of condConde into accumulator
-            print str(instr)
+            instructions.append(MachineCode(LD, storageLocation))
 
             # if result is false (<= 0), jump over trueBody
             falseBodyLabel = LABEL_FACTORY.get_label()
@@ -484,12 +484,12 @@ class IfStmt( Stmt ) :
             instructions.append(MachineCode(JMZ, falseBodyLabel))
 
             # translate the trueBody
-            trueBody = translate(self.tBody, nt, ft)
+            (trueBody, storageLocation) = translate(self.tBody, nt, ft)
             for instr in trueBody :
                 instructions.append(instr)
 
             # load the result of trueBody
-            print str(instr)
+            instructions.append(MachineCode(LD, storageLocation))
 
             # jump over the falseBody
             nextStatement = LABEL_FACTORY.get_label()
@@ -499,12 +499,12 @@ class IfStmt( Stmt ) :
             instructions.append(falseBodyLabel)
 
             # translate the flaseBody
-            falseBody = translate(self.fBody, nt, ft)
+            (falseBody, storageLocation) = translate(self.fBody, nt, ft)
             for instr in falseBody :
                 instructions.append(instr)
 
             # load resulf of falseBody
-            print str(instr)            
+            instructions.append(MachineCode(LD, storageLocation))
 
             # insert the nextStatement label
             instructions.append(nextStatement)
