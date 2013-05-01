@@ -275,6 +275,10 @@ class AssignStmt( Stmt ) :
 		print "%sAssign: %s :=" % (tabstop*depth, self.name)
 		self.rhs.display( nt, ft, depth+1 )
 
+        def translate(self, nt, ft) :
+                '''Produces (unlinked) machine code to load the locates of RHS via LD, and store into location of LHS via LD'''
+                ldStmt = MachineCode(LD,self.rhs.eval( nt, ft )) # E.g., for X=Y, this says LD Y       
+                stStmt = MachineCode(ST,self.name) # This says ST X. Todo: Add logic for symbol table lookup
 
 class DefineStmt( Stmt ) :
 	'''Binds a proc object to a name'''
