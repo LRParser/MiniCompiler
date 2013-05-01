@@ -186,7 +186,7 @@ class Number( Expr ) :
 
 	def __init__( self, v=0 ) :
 		self.value = v
-                self.tempAddr = TEMP_VARIABLE_FACTOR.get_temp()
+                self.tempAddr = TEMP_VARIABLE_FACTORY.get_temp()
 
 	def eval( self, nt, ft ) :
 		return self.value
