@@ -47,6 +47,18 @@
 #
 
 import sys
+import logging
+
+
+GLOBAL_NAME_TABLE = dict()
+GLOBAL_FUNCTION_TABLE = dict()
+
+logging.basicConfig(
+   format = "%(levelname) -4s %(message)s",
+   level = logging.DEBUG
+)
+
+log = logging.getLogger('programext')
 
 ####  CONSTANTS   ################
 
