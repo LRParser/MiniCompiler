@@ -101,6 +101,19 @@ class Label(object):
     def __str__(self):
         return str(self.label)
 
+class LabelFactory ( object ) :
+    def __init__( self ) :
+        self.__labels = list()
+        self.count = 0
+
+    def get_label( self ):
+        newLabel = Label(self.count)
+        self.count = self.count + 1
+        return newLabel
+
+LABEL_FACTORY = LabelFactory()
+        
+
 class TempVariable(Label):
 
     def __init__(self, number):
@@ -390,6 +403,51 @@ class IfStmt( Stmt ) :
 		else :
 			self.fBody.eval( nt, ft )
 
+        def translate( self, nt, ft ) :
+            instructions = list()
+
+            # translate the conditional expression
+            condCode = translate(self.cond, nt, ft)
+            for instr in condCode :
+                instructions.append(instr)
+
+            # load result of condConde into accumulator
+            print str(instr)
+
+            # if result is false (<= 0), jump over trueBody
+            falseBodyLabel = LABEL_FACTORY.get_label()
+            instructions.append(MachineCode(JMN, falseBodyLabel))
+            instructions.append(MachineCode(JMZ, falseBodyLabel))
+
+            # translate the trueBody
+            trueBody = translate(self.tBody, nt, ft)
+            for instr in trueBody :
+                instructions.append(instr)
+
+            # load the result of trueBody
+            print str(instr)
+
+            # jump over the falseBody
+            nextStatement = LABEL_FACTORY.get_label()
+            instructions.append(MachineCode(JMP, nextStatement))
+
+            # insert the falseBodyLabel
+            instructions.append(falseBodyLabel)
+
+            # translate the flaseBody
+            falseBody = translate(self.fBody, nt, ft)
+            for instr in falseBody :
+                instructions.append(instr)
+
+            # load resulf of falseBody
+            print str(instr)            
+
+            # insert the nextStatement label
+            instructions.append(nextStatement)
+            
+            return instructions
+
+
 	def display( self, nt, ft, depth=0 ) :
 		print "%sIF" % (tabstop*depth)
 		self.cond.display( nt, ft, depth+1 )
@@ -408,6 +466,39 @@ class WhileStmt( Stmt ) :
 	def eval( self, nt, ft ) :
 		while self.cond.eval( nt, ft ) > 0 :
 			self.body.eval( nt, ft )
+
+        def translate( self, nt, ft) :
+            instructions = list()
+
+            # insert the loopBeginlabel
+            loopBeginLabel = LABEL_FACTORY.get_label()
+            instructions.append(loopBeginLabel)
+
+            # translate the body of the conditional
+            condBody = translate(self.cond, nt, ft)
+            for instr in condBody :
+                instructions.append(instr)
+
+            # load the result of condBody
+            print str(instr)
+
+            # if the result is false (<= 0), jump to loopEndLabel
+            loopEndLabel = LABEL_FACTORY.get_label()
+            instructions.append(MachineCode(JMN, loopEndLabel))
+            instructions.append(MachineCode(JMZ, loopEndLabel))
+
+            # translate the loopBody
+            loopBody = translate(self.body, nt, ft)
+            for instr in loopBody :
+                instructions.append(instr)
+
+            # go back to the begining of the loop
+            instructions.append(MachineCode(JMP, loopBeginLabel))
+
+            # insert the loopEndLabel
+            instructions.append(loopEndLabel)
+
+            return instructions
 
 	def display( self, nt, ft, depth=0 ) :
 		print "%sWHILE" % (tabstop*depth)
