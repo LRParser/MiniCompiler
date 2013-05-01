@@ -22,7 +22,7 @@ LINT_FILE=pylint.rc
 FUNC1=$(TEST_INPUT_DIR1)/recLen.p
 FUNC2=$(TEST_INPUT_DIR1)/iterList.p
 
-.PHONY : clean test lint build view-part1 view-part2 view-func1 view-func2
+.PHONY : clean test lint build view-part1 view-part2 view-func1 view-func2 tags
 
 ram:
 	@g++ ram.cpp main.cpp -o ram
@@ -31,6 +31,9 @@ lint: clean
 	-pylint $(INTERPRET) $(PROGRAMEXT) --rcfile $(TEST_DIR)/$(LINT_FILE)
 	-pychecker $(INTERPRET) $(PROGRAMEXT)
 
+# For emacs users...
+tags:
+	@etags *.cpp *.h *.py
 
 # This is the idea... but it needs to be cleaned up to handle a growing number of tests
 test-part1: clean
