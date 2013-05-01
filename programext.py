@@ -244,7 +244,12 @@ class Ident( Expr ) :
 
         def __eq__(self, other):
                 log.debug("Calling __eq__ on %s and %s" % (self, other))
-                return self.name == other.name
+                if(isinstance(other,Ident)) :
+                        return self.name == other.name
+                elif(isinstance(other,str)):
+                        return self.name == other
+                else :
+                        raise Exception("Invalid Ident Comparison")
 
         def __ne__(self, other):
                 return not self.__eq__(other)
@@ -265,14 +270,11 @@ class Ident( Expr ) :
                         log.debug("Putting %s into symbol table" % self)
                         entry = SymbolTableEntry(self.name, VAR, self.name)
                         GLOBAL_SYMBOL_TABLE[self] = entry
-                #self add to symbol table
+               
+                instructions = list()
+                instructions.append(MachineCode(LD,entry.address))
 
-      #          instructions = list()
-      #          instructions.append(MachineCode(LD,self))
-      #          instructions.append(MachineCode(ST,TEMP_VARIABLE_FACTORY.get_temp()))
-
-       #         return instructions
-                return entry
+                return instructions
 
 class Times( Expr ) :
 	'''expression for binary multiplication'''
@@ -412,12 +414,13 @@ class AssignStmt( Stmt ) :
                 rhsCode = self.rhs.translate(nt,ft)
                 instructions.append(rhsCode)
                 log.debug("RHS of AssignStmt translated")
-                # The value computed by the RHS is now in the accumulator. Store it in the memory address pointed to be the Ident on the LHS
-                lhsStEntry = self.name.translate(nt,ft) 
- 
-                assignCode = MachineCode(ST,lhsStEntry.address)
+                
+                # The value computed by the RHS is now in the accumulator. Store it in the memory address pointed to by the Ident on the LHS
+                lhsStEntry = self.name.translate(nt,ft)[0] 
+                assignCode = MachineCode(ST,lhsStEntry.operand)
                 instructions.append(assignCode)
                 log.debug("LHS of AssignStmt translated")
+                
                 return instructions
 
 class DefineStmt( Stmt ) :
@@ -533,6 +536,7 @@ class WhileStmt( Stmt ) :
 
             # translate the body of the conditional
             condBody = self.cond.translate(nt, ft)
+            
             for instr in condBody :
                 instructions.append(instr)
 
