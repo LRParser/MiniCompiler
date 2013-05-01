@@ -20,6 +20,9 @@
 import sys
 from programext import *
 
+# Debug Flag
+DEBUG = None
+
 ######   LEXER   ###############################
 # Note:  This is precisely the same lexer that exp1 uses.  Could've pulled
 # it out to a different file.
@@ -226,50 +229,69 @@ yacc.yacc()
 
 ######   MAIN   #################################
 
-def test_scanner( arg=sys.argv ) :
-
-	data = ' 1+2 1-2 3*4 x blah y := 5 '
-
-	lex.input( data )
-
-	# attempt to get that first token
-	tok = lex.token()
-	while tok :
-		print tok
-		tok = lex.token()
+def _debugMessage(message):
+    """Will write a debug message to the screen.
+       Args:
+            message: Data to be printed out for debug.
+       Returns:
+            NONE
+    """
+    if DEBUG:
+        print message
 
 
-def test_parser( arg=sys.argv ) :
+def test_scanner(data) :
+    """ Test the lexer to make sure we
+    don't have any invalid tokens.
 
-	#data = ( '2', '232', '98237492' )
-	#data = [ '2+4', '2-4', '2*37' ]
-	#data.extend( [ 'x', 'foo', 'sof' ] )
-	#data = '''x:=3; s:=0; while x do s := s+x ; x := x-1 od'''
-	#data = '''x := 12;
-	#	if x then
-	#		y := 13
-	#	else
-	#		y := 0
-	#	fi'''
+    :param data: string data from either
+                 a file or text input.
+    """
+    lex.input(data)
 
-	#data = 'if 5 then x := 13 else x:=0 fi'
-
-	#data = '''
-	#define sum ( i )
-	#proc
-	#  return := 0;
-	#	while i do
-	#		return := return + i;
-	#		i := i - 1
-	#	od
-	#done;
-	#x := 5;
-	#sum( x )'''
-
-	data = sys.stdin.read()
-
-	yacc.parse( data )
+    # attempt to get that first token
+    tok = lex.token()
+    while tok:
+        tok = lex.token()
 
 
-if __name__ == '__main__' :
-	test_parser()
+def test_parser(data) :
+    """ Test method for the parser.
+
+    :param data: string data from either
+                 a file or text input.
+    """
+    yacc.parse(data)
+
+
+def main() :
+    """ Main method.
+        Will process file input or text input
+        and will execute the scanner and the parser.
+    """
+    data = []
+    nArgs = len(sys.argv) - 1
+    if nArgs == 1:
+        # One argument, hopefully it a filename.
+        # If not, it will error out when attempting
+        # to open.
+        try:
+            fSpec = sys.argv[1]
+            _debugMessage("Reading %s" % fSpec)
+            data = open(fSpec, 'r').read()
+        except Exception as e:
+            print "({0}): {1}".format(type(e), e.message)
+    elif nArgs < 1:
+        # No Arguments, just enter manual mode.
+        data=sys.stdin.read()
+
+    _debugMessage("Input program is: ")
+    _debugMessage(data)
+    _debugMessage("End input program")
+    _debugMessage("Call lexer")
+    test_scanner(data)
+    _debugMessage("Call parser")
+    test_parser(data)
+
+if __name__ == '__main__':
+    main()
