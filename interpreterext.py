@@ -183,11 +183,13 @@ def p_fact_expr( p ) :
 
 def p_fact_NUM( p ) :
 	'fact : NUMBER'
+        log.debug("p_fact_NUMBER")
 	p[0] = Number( p[1] )
 
 def p_fact_IDENT( p ) :
 	'fact : IDENT'
-	p[0] = Ident( p[1] )
+	log.debug("p_fact_IDENT")
+        p[0] = Ident( p[1] )
 
 def p_fact_funcall( p ) :
 	'fact : func_call'
@@ -195,7 +197,7 @@ def p_fact_funcall( p ) :
 
 def p_assn( p ) :
 	'assign_stmt : IDENT ASSIGNOP expr'
-	p[0] = AssignStmt( p[1], p[3] )
+	p[0] = AssignStmt( Ident(p[1]), p[3] )
 
 def p_while( p ) :
 	'while_stmt : WHILE expr DO stmt_list OD'

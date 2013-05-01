@@ -136,7 +136,7 @@ TEMP_VARIABLE_FACTORY = TempVariableFactory()
 
 class SymbolTableEntry(object):
 
-    def __init__(self, value=None, entryType=None, address=None):
+    def __init__(self, value=None, entryType=None, address=-1):
         """ Class representing a Symbol Table Entry
 
         :param value: Value of the entry
@@ -149,6 +149,13 @@ class SymbolTableEntry(object):
 
     def __str__(self):
         return "%s %s %s" % (self.value, self.entryType, self.address)
+
+class TranslateUtils(object) :
+        @staticmethod
+        def dumpGlobalSymbolTable() :
+                log.debug("Dumping entries in global symbol table: ")
+                for entry in GLOBAL_SYMBOL_TABLE :
+                        log.debug("  %s" % entry)
 
 class Expr(object) :
 	'''Virtual base class for expressions in the language'''
@@ -179,6 +186,7 @@ class Number( Expr ) :
 
 	def __init__( self, v=0 ) :
 		self.value = v
+                self.tempAddr = TEMP_VARIABLE_FACTOR.get_temp()
 
 	def eval( self, nt, ft ) :
 		return self.value
@@ -195,22 +203,26 @@ class Number( Expr ) :
         def __ne__(self,other):
                 return not self.__eq__(other)
 
+        def __hash__(self):
+                return self.value.__hash__()
+
         def translate( self, nt=None, ft=None ) :
                 #check to see if number is in the symbol table
+                log.debug("Entering translate method for Number %s" % self)
                 entry = None
                 if self in GLOBAL_SYMBOL_TABLE:
                         log.debug("Found %s in the symbol table" % self)
                         entry = GLOBAL_SYMBOL_TABLE[self]
                 else:
-                    log.debug("Putting %s into symbol table" % self)
-                    entry = SymbolTableEntry(self.value, CONST)
-                    GLOBAL_SYMBOL_TABLE[self] = entry
-
-                #self add to symbol table
+                        log.debug("Didn't find %s in the symbol table" % self)
+                        TranslateUtils.dumpGlobalSymbolTable()
+                        log.debug("Putting %s into symbol table" % self)
+                        entry = SymbolTableEntry(self.value, CONST)
+                        GLOBAL_SYMBOL_TABLE[self] = entry
 
                 instructions = list()
                 instructions.append(MachineCode(LD,self))
-                instructions.append(MachineCode(ST,TEMP_VARIABLE_FACTORY.get_temp()))
+                instructions.append(MachineCode(ST,self.tempAddr))
 
                 return instructions
 
@@ -231,30 +243,36 @@ class Ident( Expr ) :
                 return self.name
 
         def __eq__(self, other):
+                log.debug("Calling __eq__ on %s and %s" % (self, other))
                 return self.name == other.name
 
         def __ne__(self, other):
                 return not self.__eq__(other)
 
+        def __hash__(self):
+                return self.name.__hash__()
+
         def translate( self, nt=None, ft=None ) :
                 #check to see if Ident is in the symbol table
+                log.debug("Entering translate method for Ident: %s", self)
                 entry = None
                 if self in GLOBAL_SYMBOL_TABLE:
                         log.debug("Found %s in the symbol table" % self)
                         entry = GLOBAL_SYMBOL_TABLE[self]
                 else:
-                    log.debug("Putting %s into symbol table" % self)
-                    entry = SymbolTableEntry(self.name, VAR)
-                    GLOBAL_SYMBOL_TABLE[self] = entry
-
+                        log.debug("Didn't find %s in the symbol table" % self)
+                        TranslateUtils.dumpGlobalSymbolTable()
+                        log.debug("Putting %s into symbol table" % self)
+                        entry = SymbolTableEntry(self.name, VAR, self.name)
+                        GLOBAL_SYMBOL_TABLE[self] = entry
                 #self add to symbol table
 
-                instructions = list()
-                instructions.append(MachineCode(LD,self))
-                instructions.append(MachineCode(ST,TEMP_VARIABLE_FACTORY.get_temp()))
+      #          instructions = list()
+      #          instructions.append(MachineCode(LD,self))
+      #          instructions.append(MachineCode(ST,TEMP_VARIABLE_FACTORY.get_temp()))
 
-                return instructions
-
+       #         return instructions
+                return entry
 
 class Times( Expr ) :
 	'''expression for binary multiplication'''
@@ -271,7 +289,7 @@ class Times( Expr ) :
 		return self.lhs.eval( nt, ft ) * self.rhs.eval( nt, ft )
 
         def translate(self, nt, ft ) :
-                log.debug("TODO")
+                log.debug("Entering translate method for Times")
                 instructions = list()
                 return instructions
 
@@ -293,7 +311,7 @@ class Plus( Expr ) :
 		return self.lhs.eval( nt, ft ) + self.rhs.eval( nt, ft )
 
         def translate(self, nt, ft ) :
-                log.debug("TODO")
+                log.debug("Entering translate method for Plus")
 
 	def display( self, nt, ft, depth=0 ) :
 		print "%sADD" % (tabstop*depth)
@@ -313,7 +331,7 @@ class Minus( Expr ) :
 		return self.lhs.eval( nt, ft ) - self.rhs.eval( nt, ft )
 
         def translate( self, nt, ft ) :
-                log.debug("TODO")
+                log.debug("Entering translate method for Minus")
                 instructions = list()
                 return instructions()
 
@@ -382,11 +400,24 @@ class AssignStmt( Stmt ) :
 		print "%sAssign: %s :=" % (tabstop*depth, self.name)
 		self.rhs.display( nt, ft, depth+1 )
 
+        def __str__( self ) :
+                return str(self.name)+" = "+str(self.rhs)
+
         def translate(self, nt, ft) :
                 '''Produces (unlinked) machine code to load the locates of RHS via LD, and store into location of LHS via LD'''
+                log.debug("Entering translate method for AssignStmt: %s" % self)
                 instructions = list()
-                instructions.append(MachineCode(LD,self.rhs.eval( nt, ft ))) # E.g., for X=Y, this says LD Y       
-                instructions.append(MachineCode(ST,self.name)) # This says ST X. Todo: Add logic for symbol table lookup
+               
+                # First, execute the code corresponding to the RHS
+                rhsCode = self.rhs.translate(nt,ft)
+                instructions.append(rhsCode)
+                log.debug("RHS of AssignStmt translated")
+                # The value computed by the RHS is now in the accumulator. Store it in the memory address pointed to be the Ident on the LHS
+                lhsStEntry = self.name.translate(nt,ft) 
+ 
+                assignCode = MachineCode(ST,lhsStEntry.address)
+                instructions.append(assignCode)
+                log.debug("LHS of AssignStmt translated")
                 return instructions
 
 class DefineStmt( Stmt ) :
