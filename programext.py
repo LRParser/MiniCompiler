@@ -68,7 +68,7 @@ CAL = 'CAL'
 HLT = 'HLT'
 
 ######   CLASSES   ##################
-class MachineCode:
+class MachineCode(object):
 
     def __init__(self, opcode=None, operand=None):
         self.__opcode = opcode
@@ -84,6 +84,38 @@ class MachineCode:
 
     def __str__(self):
         return "%s %s" % (self.opcode, self.operand)
+
+class Label(object):
+
+    def __init__(self, label=None):
+        self.__label = label
+
+    @property
+    def label(self):
+        return self.__label
+
+    def __str__(self):
+        return str(self.label)
+
+class TempVariable(Label):
+
+    def __init__(self, number):
+        super(TempVariable, self).__init__("T%s" % number)
+
+
+class TempVariableFactory(object):
+
+    def __init__(self):
+        self.__temps = list()
+        self.__counter = 0
+
+    def get_temp(self):
+        temp = TempVariable(self.__counter)
+        self.__counter = self.__counter + 1
+        return temp
+
+TEMP_VARIABLE_FACTORY = TempVariableFactory()
+
 
 class Expr :
 	'''Virtual base class for expressions in the language'''
