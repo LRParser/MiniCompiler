@@ -496,70 +496,71 @@ class IfStmt( Stmt ) :
 		else :
 			self.fBody.eval( nt, ft )
 
-    def translate( self, nt, ft ) :
-        instructions = list()
+	def translate( self, nt, ft ) :
+            instructions = list()
 
-        # translate the conditional expression
-        (condCode, storageLocation) = translate(self.cond, nt, ft)
-        for instr in condCode :
-            instructions.append(instr)
+            # translate the conditional expression
+            (condCode, storageLocation) = translate(self.cond, nt, ft)
 
-        # load result of condConde into accumulator
-        instructions.append(MachineCode(LD, storageLocation))
+            for instr in condCode :
+                instructions.append(instr)
 
-        # if result is false (<= 0), jump over trueBody
-        falseBodyLabel = LABEL_FACTORY.get_label()
-        instructions.append(MachineCode(JMN, falseBodyLabel))
-        instructions.append(MachineCode(JMZ, falseBodyLabel))
+            # load result of condConde into accumulator
+            instructions.append(MachineCode(LD, storageLocation))
 
-        # translate the trueBody
-        (trueBody, storageLocation) = translate(self.tBody, nt, ft)
-        for instr in trueBody :
-            instructions.append(instr)
+            # if result is false (<= 0), jump over trueBody
+            falseBodyLabel = LABEL_FACTORY.get_label()
+            instructions.append(MachineCode(JMN, falseBodyLabel))
+            instructions.append(MachineCode(JMZ, falseBodyLabel))
 
-        # load the result of trueBody
-        instructions.append(MachineCode(LD, storageLocation))
+            # translate the trueBody
+            (trueBody, storageLocation) = translate(self.tBody, nt, ft)
+            for instr in trueBody :
+                instructions.append(instr)
 
-        # jump over the falseBody
-        nextStatement = LABEL_FACTORY.get_label()
-        instructions.append(MachineCode(JMP, nextStatement))
+            # load the result of trueBody
+            instructions.append(MachineCode(LD, storageLocation))
 
-        # insert the falseBodyLabel
-        instructions.append(falseBodyLabel)
+            # jump over the falseBody
+            nextStatement = LABEL_FACTORY.get_label()
+            instructions.append(MachineCode(JMP, nextStatement))
 
-        # translate the flaseBody
-        (falseBody, storageLocation) = translate(self.fBody, nt, ft)
-        for instr in falseBody :
-            instructions.append(instr)
+            # insert the falseBodyLabel
+            instructions.append(falseBodyLabel)
 
-        # load resulf of falseBody
-        instructions.append(MachineCode(LD, storageLocation))
+            # translate the flaseBody
+            (falseBody, storageLocation) = translate(self.fBody, nt, ft)
+            for instr in falseBody :
+                instructions.append(instr)
 
-        # insert the nextStatement label
-        instructions.append(nextStatement)
+            # load resulf of falseBody
+            instructions.append(MachineCode(LD, storageLocation))
+
+            # insert the nextStatement label
+            instructions.append(nextStatement)
             
-        return instructions
+            return instructions
 
 
 	def display( self, nt, ft, depth=0 ) :
-		print "%sIF" % (tabstop*depth)
-		self.cond.display( nt, ft, depth+1 )
-		print "%sTHEN" % (tabstop*depth)
-		self.tBody.display( nt, ft, depth+1 )
-		print "%sELSE" % (tabstop*depth)
-		self.fBody.display( nt, ft, depth+1 )
+            print "%sIF" % (tabstop*depth)
+            self.cond.display( nt, ft, depth+1 )
+            print "%sTHEN" % (tabstop*depth)
+            self.tBody.display( nt, ft, depth+1 )
+            print "%sELSE" % (tabstop*depth)
+            self.fBody.display( nt, ft, depth+1 )
 
 
 class WhileStmt( Stmt ) :
 
-	def __init__( self, cond, body ) :
-		self.cond = cond
-		self.body = body
+    def __init__( self, cond, body ) :
+        self.cond = cond
+        self.body = body
 
-	def eval( self, nt, ft ) :
-		while self.cond.eval( nt, ft ) > 0 :
-			self.body.eval( nt, ft )
-
+    def eval( self, nt, ft ) :
+        while self.cond.eval( nt, ft ) > 0 :
+            self.body.eval( nt, ft )
+                
     def translate( self, nt, ft) :
         instructions = list()
 
@@ -601,10 +602,10 @@ class WhileStmt( Stmt ) :
         return instructions
 
 	def display( self, nt, ft, depth=0 ) :
-		print "%sWHILE" % (tabstop*depth)
-		self.cond.display( nt, ft, depth+1 )
-		print "%sDO" % (tabstop*depth)
-		self.body.display( nt, ft, depth+1 )
+            print "%sWHILE" % (tabstop*depth)
+            self.cond.display( nt, ft, depth+1 )
+            print "%sDO" % (tabstop*depth)
+            self.body.display( nt, ft, depth+1 )
 
 #-------------------------------------------------------
 
