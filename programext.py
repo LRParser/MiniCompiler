@@ -78,6 +78,11 @@ JMN = 'JMN'
 CAL = 'CAL'
 HLT = 'HLT'
 
+######   SYMBOL TABLE ENTRY TYPE#####
+CONST = 1
+VAR = 2
+TEMP = 3
+
 ######   CLASSES   ##################
 class MachineCode(object):
 
@@ -115,6 +120,21 @@ class TempVariableFactory():
 
 TEMP_VARIABLE_FACTORY = TempVariableFactory()
 
+class SymbolTableEntry(object):
+
+    def __init__(self, value=None, type=None, address=None):
+        """ Class representing a Symbol Table Entry
+
+        :param value: Value of the entry
+        :param type: Type, Constant, Variable, Temp
+        :param address: Memory address where located.
+        """
+        self.value = value
+        self.type = type
+        self.address = address
+
+    def __str__(self):
+        return "%s %s %s" % (self.value, self.type, self.address)
 
 class Expr(object) :
 	'''Virtual base class for expressions in the language'''
