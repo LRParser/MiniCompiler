@@ -49,8 +49,6 @@
 import sys
 import logging
 
-"This symbol table should contain: {Label : SymbolTableEntry}"
-GLOBAL_SYMBOL_TABLE = dict()
 
 logging.basicConfig(
    format = "%(levelname) -4s %(message)s",
@@ -154,17 +152,27 @@ class SymbolTableEntry(object):
     def __str__(self):
         return "Value: %s Type: %s Address: %s" % (self.value, self.entryType, self.address)
 
-class TranslateUtils(object) :
+class SymbolTable(dict) :
 
-        @staticmethod
-        def dumpSymbolTable(st) :
-            for entry in st :
-                log.debug("Name: %s %s" % (entry, st[entry]))
+        def __init__(self) :
+            super(SymbolTable,self).__init__()
 
-        @staticmethod
-        def dumpGlobalSymbolTable() :
-                log.debug("Dumping entries in global symbol table: ")
-                TranslateUtils.dumpSymbolTable(GLOBAL_SYMBOL_TABLE)
+        def dump(self) :
+            for entry in self :
+                log.debug("Dumping entries in symbol table: ")
+                log.debug("Name: %s %s" % (entry, self[entry]))
+
+        def countOfVars(self) :
+            return 0
+
+        def countOfConsts(self) :
+            return 0
+        
+        def countOfTemps(self) :
+            return 0
+
+"This symbol table should contain: {Label : SymbolTableEntry}"
+GLOBAL_SYMBOL_TABLE = SymbolTable()
 
 class Expr(object) :
 	'''Virtual base class for expressions in the language'''
@@ -227,11 +235,11 @@ class Number( Expr ) :
                         entry = GLOBAL_SYMBOL_TABLE[self]
                 else:
                         log.debug("Didn't find %s in the symbol table" % self)
-                        TranslateUtils.dumpGlobalSymbolTable()
+                        GLOBAL_SYMBOL_TABLE.dump()
                         entry = SymbolTableEntry(self.value, CONST)
                         log.debug("Associating %s in global symbol table with entry %s" % (self, entry))
                         GLOBAL_SYMBOL_TABLE[self] = entry
-                        TranslateUtils.dumpGlobalSymbolTable()
+                        GLOBAL_SYMBOL_TABLE.dump()
 
                 instructions = list()
                 instructions.append(MachineCode(LD,self))
@@ -279,7 +287,7 @@ class Ident( Expr ) :
                         entry = GLOBAL_SYMBOL_TABLE[self]
                 else:
                         log.debug("Didn't find %s in the symbol table" % self)
-                        TranslateUtils.dumpGlobalSymbolTable()
+                        GLOBAL_SYMBOL_TABLE.dump()
                         log.debug("Putting %s into symbol table" % self)
                         entry = SymbolTableEntry(self.name, VAR, self.name)
                         GLOBAL_SYMBOL_TABLE[self] = entry
