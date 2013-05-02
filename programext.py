@@ -324,8 +324,8 @@ class Number( Expr ) :
             entry = SymbolTableUtils.createOrGetSymbolTableReference(self,self.value,CONST)
 
             instructions = list()
-            instructions.append(MachineCode(LD,self))
-            instructions.append(MachineCode(ST,self))
+            #instructions.append(MachineCode(LD,self))
+            #instructions.append(MachineCode(ST,self))
 
             return (instructions, self)
 
@@ -359,13 +359,13 @@ class Ident( Expr ) :
 
 
         def translate( self, nt=None, ft=None ) :
-                #check to see if Ident is in the symbol table
-                log.debug("Entering translate method for Ident: %s", self)
-                entry = SymbolTableUtils.createOrGetSymbolTableReference(self,self.name,VAR)
-                instructions = list()
-                instructions.append(MachineCode(LD,self.name))
+            #check to see if Ident is in the symbol table
+            log.debug("Entering translate method for Ident: %s", self)
+            entry = SymbolTableUtils.createOrGetSymbolTableReference(self,self.name,VAR)
+            instructions = list()
+            #instructions.append(MachineCode(LD,self.name))
 
-                return (instructions, self.name)
+            return (instructions, self.name)
 
 class Times( Expr ) :
     '''expression for binary multiplication'''
