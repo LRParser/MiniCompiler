@@ -137,7 +137,9 @@ def p_program( p ) :
   log.info('Linking Program')
   instructions = P.link(instructions)
   for inst in instructions :
-    log.debug(inst)
+    print(inst)
+  log.info('Printing memory table')
+  P.printMemoryTable()
 
 def p_stmt_list( p ) :
  '''stmt_list : stmt SEMICOLON stmt_list

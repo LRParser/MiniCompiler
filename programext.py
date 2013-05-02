@@ -65,8 +65,8 @@ returnSymbol = 'return'
 tabstop = '  ' # 2 spaces
 ######   OPCODES   ##################
 
-LD = 'LD'
-ST = 'ST'
+LD = 'LDA'
+ST = 'STA'
 ADD = 'ADD'
 SUB = 'SUB'
 MUL = 'MUL'
@@ -215,6 +215,30 @@ class SymbolTableUtils :
                         entry = SymbolTableEntry(entryVal, entryType)
                         GLOBAL_SYMBOL_TABLE[key] = entry
                 return entry
+
+        @staticmethod
+        def printMemoryTable(linkedSymbolTable) :
+            '''Takes linked machine code and generates a memory table that already contains values of constants'''
+
+            log.debug("Printing memory table")
+            currentAddr = 1
+
+            # TODO: Refactor to use a lambda function to iterate by address
+            # Except for constants, we we initialize all values to 0
+
+            for const in linkedSymbolTable.iterate(CONST) :
+                print("%d  %s ; %s" % (currentAddr, const.value, const) )
+                currentAddr = currentAddr + 1
+
+            for var in linkedSymbolTable.iterate(VAR) :
+                print("%d  %s ; %s" % (currentAddr, 0, var) )
+                currentAddr = currentAddr + 1
+            
+            for temp in linkedSymbolTable.iterate(TEMP) :
+                print("%d  %s ; %s" % (currentAddr, 0, temp) )
+                currentAddr = currentAddr + 1
+
+            log.debug("Memory table printed")
 
 ### Linker Code ###
 
@@ -748,15 +772,23 @@ class Program :
             for key in GLOBAL_SYMBOL_TABLE.iterkeys() :
                 log.debug(key)
             for line in machineCode :
-                log.debug("Looking to link operand %s " % line.operand)
-                line.operand = GLOBAL_SYMBOL_TABLE[line.operand].address
+                linkedAddr = GLOBAL_SYMBOL_TABLE[line.operand].address
+                line.operand = linkedAddr
+                log.debug("Linked operand %s to address: %s" % (line.operand, linkedAddr))
             return machineCode 
+
+        def printMemoryTable( self ) :
+            SymbolTableUtils.printMemoryTable(GLOBAL_SYMBOL_TABLE)
 
 
         def compile( self ) :
             machineCode = self.translate()
             machineCode = self.optimize(machineCode)
             machineCode = self.link(machineCode)
+            # Print memory table
+
+            Linker.printMemoryTable(GLOBAL_SYMBOL_TABLE)
+
             return machineCode
 
         def performPeepholeOptimization(self, machineCode ) :
