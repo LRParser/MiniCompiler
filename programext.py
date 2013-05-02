@@ -384,44 +384,29 @@ class Times( Expr ) :
     def translate(self, nt, ft ) :
         log.debug("Entering translate method for Times")
 
-        temp = list()
         instructions = list()
 
         # Get the Left Hand Side.
-        lhsCode = self.lhs.translate(nt,ft)
+        (lhsCode, lhsStorageLocation) = self.lhs.translate(nt,ft)
         for instr in lhsCode :
             instructions.append(instr)
 
         # Get the Right Hand Side.
-        rhsCode = self.rhs.translate(nt,ft)
+        (rhsCode, rhsStorageLocation) = self.rhs.translate(nt,ft)
         for instr in rhsCode :
             instructions.append(instr)
 
-        # Only pull out the entries that are storing values
-        store = list()
-        for instr in instructions :
-            log.debug("print list: %s" % instr)
-            if(instr.opcode == "ST"):
-                store.append(MachineCode(LD,instr.operand))
-
-        # Loop through the instructions in which we are storing a value to a
-        # register.
-        for idx, val in enumerate(store):
-            print idx, val
-            if(idx % 2 == 0):
-                # Even number instructions means we load.
-                instructions.append(MachineCode(LD,val.operand))
-            else:
-                # Odd number instruction means we append an add instruction.
-                # This will multiply the current operand with the previous one loaded
-                # into the accumulator.
-                instructions.append(MachineCode(MUL,val.operand))
-                instructions.append(MachineCode(ST,TEMP_VARIABLE_FACTORY.get_temp()))
+        # load the result of lhs into the accumulator, then subtract the rhs
+        resultStorageLocation = TEMP_VARIABLE_FACTORY.get_temp()
+        instructions.append(MachineCode(LD, lhsStorageLocation))
+        instructions.append(MachineCode(MUL, rhsStorageLocation))
+        instructions.append(MachineCode(ST, resultStorageLocation))
 
         for val in instructions:
             log.debug("%s %s " % (val.opcode, val.operand))
+
         log.debug("Times translated")
-        return instructions
+        return (instructions, resultStorageLocation)
 
     def display( self, nt, ft, depth=0 ) :
         print "%sMULT" % (tabstop*depth)
@@ -443,44 +428,29 @@ class Plus( Expr ) :
     def translate(self, nt, ft ) :
         log.debug("Entering translate method for Plus")
 
-        temp = list()
         instructions = list()
 
         # Get the Left Hand Side.
-        lhsCode = self.lhs.translate(nt,ft)
+        (lhsCode, lhsStorageLocation) = self.lhs.translate(nt,ft)
         for instr in lhsCode :
             instructions.append(instr)
 
         # Get the Right Hand Side.
-        rhsCode = self.rhs.translate(nt,ft)
+        (rhsCode, rhsStorageLocation) = self.rhs.translate(nt,ft)
         for instr in rhsCode :
             instructions.append(instr)
 
-        # Only pull out the entries that are storing values
-        store = list()
-        for instr in instructions :
-            if(instr.opcode == "ST"):
-                store.append(MachineCode(LD,instr.operand))
-
-        # Loop through the instructions in which we are storing a value to a
-        # register.
-        for idx, val in enumerate(store):
-            print idx, val
-            if(idx % 2 == 0):
-                # Even number instructions means we load.
-                instructions.append(MachineCode(LD,val.operand))
-            else:
-                # Odd number instruction means we append an add instruction.
-                # This will add the current operand with the previous one loaded
-                # into the accumulator.
-                instructions.append(MachineCode(ADD,val.operand))
-                instructions.append(MachineCode(ST,TEMP_VARIABLE_FACTORY.get_temp()))
+        # load the result of lhs into the accumulator, then subtract the rhs
+        resultStorageLocation = TEMP_VARIABLE_FACTORY.get_temp()
+        instructions.append(MachineCode(LD, lhsStorageLocation))
+        instructions.append(MachineCode(ADD, rhsStorageLocation))
+        instructions.append(MachineCode(ST, resultStorageLocation))
 
         for val in instructions:
             log.debug("%s %s " % (val.opcode, val.operand))
 
         log.debug("Plus translated")
-        return instructions
+        return (instructions, resultStorageLocation)
 
     def display( self, nt, ft, depth=0 ) :
         print "%sADD" % (tabstop*depth)
@@ -502,7 +472,6 @@ class Minus( Expr ) :
     def translate( self, nt, ft ) :
         log.debug("Entering translate method for Minus")
 
-        temp = list()
         instructions = list()
 
         # Get the Left Hand Side.
@@ -515,32 +484,11 @@ class Minus( Expr ) :
         for instr in rhsCode :
             instructions.append(instr)
 
-        # Only pull out the entries that are storing values
-        store = list()
-        for instr in instructions :
-            if(instr.opcode == "ST"):
-                store.append(MachineCode(LD,instr.operand))
-
         # load the result of lhs into the accumulator, then subtract the rhs
         resultStorageLocation = TEMP_VARIABLE_FACTORY.get_temp()
         instructions.append(MachineCode(LD, lhsStorageLocation))
         instructions.append(MachineCode(SUB, rhsStorageLocation))
         instructions.append(MachineCode(ST, resultStorageLocation))
-
-
-        # Loop through the instructions in which we are storing a value to a
-        # register.
-        #for idx, val in enumerate(store):
-        #print idx, val
-        #    if(idx % 2 == 0):
-                # Even number instructions means we load.
-             #   instructions.append(MachineCode(LD,val.operand))
-#            else:
-                # Odd number instruction means we append an add instruction.
-                # This will subtract the current operand with the previous one loaded
-                # into the accumulator.
- #               instructions.append(MachineCode(SUB,val.operand))
-  #              instructions.append(MachineCode(ST,TEMP_VARIABLE_FACTORY.get_temp()))
 
         for val in instructions:
             log.debug("%s %s " % (val.opcode, val.operand))
