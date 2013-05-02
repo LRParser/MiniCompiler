@@ -84,7 +84,7 @@ TEMP = "temp"
 
 ###### ADDRESS CONSTANTS ############
 
-UNKNOWN = "?" 
+UNKNOWN = "?"
 
 ######   CLASSES   ##################
 class MachineCode(object):
@@ -133,7 +133,7 @@ class LabelFactory ( object ) :
         return newLabel
 
 LABEL_FACTORY = LabelFactory()
-        
+
 
 class TempVariable(Label):
 
@@ -158,7 +158,7 @@ class TempVariableFactory(object):
 
     def get_temp(self):
         temp = TempVariable(self.count)
-        SymbolTableUtils.createOrGetSymbolTableReference(temp,temp.label,TEMP)        
+        SymbolTableUtils.createOrGetSymbolTableReference(temp,temp.label,TEMP)
         self.count = self.count + 1
         return temp
 
@@ -192,7 +192,7 @@ class SymbolTable(dict) :
                 log.debug("Name: %s %s" % (entry, self[entry]))
 
         def iterate(self, entryType) :
-            return filter(lambda x: x.entryType == entryType, self.itervalues())    
+            return filter(lambda x: x.entryType == entryType, self.itervalues())
 
         def countOf(self, entryType) :
             return len(filter(lambda x: x.entryType == entryType, self.itervalues()))
@@ -204,7 +204,7 @@ class SymbolTable(dict) :
 GLOBAL_SYMBOL_TABLE = SymbolTable()
 
 class SymbolTableUtils :
-        
+
         @staticmethod
         def createOrGetSymbolTableReference(key, entryVal, entryType ) :
                 entry = None
@@ -234,11 +234,11 @@ class SymbolTableUtils :
             for const in linkedSymbolTable.iterate(CONST) :
                 memLines.append("%d  %s ; %s" % (currentAddr, const.value, const) )
                 currentAddr = currentAddr + 1
-            
+
             for var in linkedSymbolTable.iterate(VAR) :
                 memLines.append("%d  %s ; %s" % (currentAddr, 0, var) )
                 currentAddr = currentAddr + 1
-            
+
             for temp in linkedSymbolTable.iterate(TEMP) :
                 memLines.append("%d  %s ; %s" % (currentAddr, 0, temp) )
                 currentAddr = currentAddr + 1
@@ -295,7 +295,6 @@ class Number( Expr ) :
 
 	def __init__( self, v=0 ) :
 		self.value = v
-                self.tempAddr = TEMP_VARIABLE_FACTORY.get_temp()
 
 	def eval( self, nt, ft ) :
 		return self.value
@@ -304,31 +303,31 @@ class Number( Expr ) :
 		print "%s%i" % (tabstop*depth, self.value)
 
         def __str__(self):
-                return str(self.value)
+            return str(self.value)
 
         def __eq__(self,other):
-                if isinstance(other,Number) :
-                    return self.value == other.value 
-                else :
-                    return False
+            if isinstance(other,Number) :
+                return self.value == other.value
+            else :
+                return False
 
         def __ne__(self,other):
-                return not self.__eq__(other)
+            return not self.__eq__(other)
 
         def __hash__(self):
-                return hash(self.value)
+            return hash(self.value)
 
         def translate( self, nt=None, ft=None ) :
-                #check to see if number is in the symbol table
-                log.debug("Entering translate method for Number %s" % self)
+            #check to see if number is in the symbol table
+            log.debug("Entering translate method for Number %s" % self)
 
-                entry = SymbolTableUtils.createOrGetSymbolTableReference(self,self.value,CONST)
+            entry = SymbolTableUtils.createOrGetSymbolTableReference(self,self.value,CONST)
 
-                instructions = list()
-                instructions.append(MachineCode(LD,self))
-                instructions.append(MachineCode(ST,self.tempAddr))
+            instructions = list()
+            instructions.append(MachineCode(LD,self))
+            instructions.append(MachineCode(ST,self))
 
-                return (instructions, self.tempAddr)
+            return (instructions, self)
 
 
 class Ident( Expr ) :
@@ -401,6 +400,7 @@ class Times( Expr ) :
         # Only pull out the entries that are storing values
         store = list()
         for instr in instructions :
+            log.debug("print list: %s" % instr)
             if(instr.opcode == "ST"):
                 store.append(MachineCode(LD,instr.operand))
 
@@ -620,7 +620,7 @@ class AssignStmt( Stmt ) :
 
         def __ne__( self, other ) :
             return not (self.__eq__(other))
-        
+
         def __hash__( self ) :
             return hash(self.name)
 
@@ -628,26 +628,26 @@ class AssignStmt( Stmt ) :
             '''Produces (unlinked) machine code to load the locates of RHS via LD, and store into location of LHS via LD'''
             log.debug("Entering translate method for AssignStmt: %s" % self)
             instructions = list()
-           
+
             # First, execute the code corresponding to the RHS
             (rhsCode, rhsStorageLocation) = self.rhs.translate(nt,ft)
             for instr in rhsCode :
                 instructions.append(instr)
             # instructions.append(rhsCode)
             log.debug("RHS of AssignStmt translated")
-            
+
             # The value computed by the RHS is now in the accumulator. First, ensure the Ident on LHS is in the symbol table for later linking
-            entry = SymbolTableUtils.createOrGetSymbolTableReference(self,UNKNOWN,VAR)          
+            entry = SymbolTableUtils.createOrGetSymbolTableReference(self,UNKNOWN,VAR)
 
             # First, ensure the Ident is in the symbol table. Then, store the value in the accumulator in the memory address pointed to by the Ident on the LHS
             ldCode = MachineCode(LD, rhsStorageLocation)
-            instructions.append(ldCode) 
+            instructions.append(ldCode)
             assignCode = MachineCode(ST, self.name)
             instructions.append(assignCode)
             log.debug("LHS of AssignStmt translated")
-  
+
             GLOBAL_SYMBOL_TABLE.dump()
-      
+
             return (instructions, self.name)
 
 class DefineStmt( Stmt ) :
@@ -727,7 +727,7 @@ class IfStmt( Stmt ) :
 
             # insert the nextStatement label
             instructions.append(nextStatement)
-                
+
             return instructions
 
 
@@ -810,7 +810,7 @@ class StmtList :
 	def eval( self, nt, ft ) :
 		for s in self.sl :
 			s.eval( nt, ft )
-        
+
         def translate( self, nt, ft ) :
                 instructions = list()
                 for s in self.sl :
@@ -902,7 +902,7 @@ class Program :
                 linkedAddr = GLOBAL_SYMBOL_TABLE[line.operand].address
                 line.operand = linkedAddr
                 log.debug("Linked operand %s to address: %s" % (line.operand, linkedAddr))
-            return machineCode 
+            return machineCode
 
         def getMemoryTable( self ) :
             return SymbolTableUtils.getMemoryTable(GLOBAL_SYMBOL_TABLE)
@@ -931,7 +931,7 @@ class Program :
                     else :
                         optimizedCode.append(currentInstr)
 
-                return optimizedCode                         
+                return optimizedCode
 
         def optimize( self, machineCode ) :
                 optimizedCode = self.performPeepholeOptimization(machineCode)
