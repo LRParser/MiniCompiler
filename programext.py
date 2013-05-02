@@ -231,12 +231,12 @@ class SymbolTableUtils :
 
             memLines = list()
 
-            for var in linkedSymbolTable.iterate(VAR) :
-                memLines.append("%d  %s ; %s" % (currentAddr, 0, var) )
-                currentAddr = currentAddr + 1
-            
             for const in linkedSymbolTable.iterate(CONST) :
                 memLines.append("%d  %s ; %s" % (currentAddr, const.value, const) )
+                currentAddr = currentAddr + 1
+            
+            for var in linkedSymbolTable.iterate(VAR) :
+                memLines.append("%d  %s ; %s" % (currentAddr, 0, var) )
                 currentAddr = currentAddr + 1
             
             for temp in linkedSymbolTable.iterate(TEMP) :
