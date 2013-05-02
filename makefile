@@ -14,7 +14,7 @@ RUN_TEST1=$(PYTHON) $(TEST_DIR)/$(TESTER1)
 LINT_FILE=pylint.rc
 
 SIM=./ram
-PROG_FILE=symOut.txt
+SYMBOL_FILE=symOut.txt
 MEM_FILE=memOut.txt
 MEM_OPT_FILE=optimizedOut.txt
 LINK_FILE=linkedOut.txt
@@ -50,7 +50,7 @@ test-part1: clean
 test: test-part1
 
 clean:
-	@rm -f *.pyc *.out parsetab.py ram $(PROG_FILE) $(MEM_FILE) $(MEM_OPT_FILE) $(LINK_FILE)
+	@rm -f *.pyc *.out parsetab.py ram $(SYMBOL_FILE) $(MEM_FILE) $(MEM_OPT_FILE) $(LINK_FILE)
 	@rm -rf $(TEST_OUTPUT_DIR1)
 
 
@@ -58,5 +58,5 @@ build : clean
 
 compile: clean ram
 	@$(PYTHON) $(INTERPRET)
-	$(call run-simulator,$(PROG_FILE),$(MEM_FILE))
-	$(call run-simulator,$(PROG_FILE),$(MEM_OPT_FILE))
+	$(call run-simulator,$(LINK_FILE),$(MEM_FILE))
+#	$(call run-simulator,$(MEM_OPT_FILE),$(MEM_FILE))
