@@ -1,3 +1,6 @@
+TOP ?= $(shell pwd)
+
+ASSIGNMENT=A3
 PYTHON=python
 INTERPRET=interpreterext.py
 PROGRAMEXT=programext.py
@@ -19,6 +22,9 @@ LINK_FILE=linkedOut.txt
 
 SIM_CODE_DIR=sim/
 BUILD_SIM=$(SIM_CODE_DIR)ram.cpp $(SIM_CODE_DIR)main.cpp -I $(SIM_CODE_DIR)
+
+RELEASE_DIR=release
+RELEASE_FILE=$(ASSIGNMENT).tar.gz
 
 .PHONY : clean test lint build tags
 
@@ -50,6 +56,7 @@ test: test-part1
 clean:
 	@rm -f *.pyc *.out parsetab.py ram $(SYMBOL_FILE) $(MEM_FILE) $(MEM_OPT_FILE) $(LINK_FILE)
 	@rm -rf $(TEST_OUTPUT_DIR1)
+	@-rm -rf $(RELEASE_DIR)
 
 
 build : clean
@@ -58,3 +65,11 @@ compile: clean ram
 	@$(PYTHON) $(INTERPRET)
 	$(call run-simulator,$(LINK_FILE),$(MEM_FILE))
 #	$(call run-simulator,$(MEM_OPT_FILE),$(MEM_FILE))
+
+release: clean
+	@cd ..; \
+	cp -R $(TOP) $(ASSIGNMENT); \
+	tar -zcf $(RELEASE_FILE) --exclude .git $(ASSIGNMENT); \
+	rm -rf $(ASSIGNMENT); \
+	mkdir $(TOP)/$(RELEASE_DIR); \
+	mv $(RELEASE_FILE) $(TOP)/$(RELEASE_DIR)
