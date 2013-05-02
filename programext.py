@@ -385,7 +385,6 @@ class Times( Expr ) :
     def translate(self, nt, ft ) :
         log.debug("Entering translate method for Times")
 
-        temp = list()
         instructions = list()
 
         # Get the Left Hand Side.
@@ -443,7 +442,6 @@ class Plus( Expr ) :
     def translate(self, nt, ft ) :
         log.debug("Entering translate method for Plus")
 
-        temp = list()
         instructions = list()
 
         # Get the Left Hand Side.
@@ -502,7 +500,6 @@ class Minus( Expr ) :
     def translate( self, nt, ft ) :
         log.debug("Entering translate method for Minus")
 
-        temp = list()
         instructions = list()
 
         # Get the Left Hand Side.
