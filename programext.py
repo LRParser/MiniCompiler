@@ -94,7 +94,10 @@ class MachineCode(object):
         self.operand = operand
 
     def __str__(self):
-        return "%s %s" % (self.opcode, self.operand)
+        if(self.operand is None) :
+            return "%s" % (self.opcode)
+        else :
+            return "%s %s" % (self.opcode, self.operand)
 
 class Label(object):
 
@@ -217,28 +220,31 @@ class SymbolTableUtils :
                 return entry
 
         @staticmethod
-        def printMemoryTable(linkedSymbolTable) :
+        def getMemoryTable(linkedSymbolTable) :
             '''Takes linked machine code and generates a memory table that already contains values of constants'''
 
-            log.debug("Printing memory table")
+            log.debug("Generating memory table")
             currentAddr = 1
 
             # TODO: Refactor to use a lambda function to iterate by address
             # Except for constants, we we initialize all values to 0
 
+            memLines = list()
+
             for const in linkedSymbolTable.iterate(CONST) :
-                print("%d  %s ; %s" % (currentAddr, const.value, const) )
+                memLines.append("%d  %s ; %s" % (currentAddr, const.value, const) )
                 currentAddr = currentAddr + 1
 
             for var in linkedSymbolTable.iterate(VAR) :
-                print("%d  %s ; %s" % (currentAddr, 0, var) )
+                memLines.append("%d  %s ; %s" % (currentAddr, 0, var) )
                 currentAddr = currentAddr + 1
             
             for temp in linkedSymbolTable.iterate(TEMP) :
-                print("%d  %s ; %s" % (currentAddr, 0, temp) )
+                memLines.append("%d  %s ; %s" % (currentAddr, 0, temp) )
                 currentAddr = currentAddr + 1
 
-            log.debug("Memory table printed")
+            log.debug("Memory table generated")
+            return memLines
 
 ### Linker Code ###
 
@@ -765,6 +771,11 @@ class Program :
         def translate( self ) :
                 nestedStmtCode = self.stmtList.translate(self.nameTable, self.funcTable)
                 flattenedStmtCode = list(self.flattenList(nestedStmtCode))
+
+                # Append a HLT instruction
+
+                flattenedStmtCode.append(MachineCode(HLT))
+
                 return flattenedStmtCode
 
         def link( self, machineCode ) :
@@ -772,13 +783,16 @@ class Program :
             for key in GLOBAL_SYMBOL_TABLE.iterkeys() :
                 log.debug(key)
             for line in machineCode :
+                if(line.operand is None) :
+                    # No need to link the HLT instruction
+                    continue
                 linkedAddr = GLOBAL_SYMBOL_TABLE[line.operand].address
                 line.operand = linkedAddr
                 log.debug("Linked operand %s to address: %s" % (line.operand, linkedAddr))
             return machineCode 
 
-        def printMemoryTable( self ) :
-            SymbolTableUtils.printMemoryTable(GLOBAL_SYMBOL_TABLE)
+        def getMemoryTable( self ) :
+            return SymbolTableUtils.getMemoryTable(GLOBAL_SYMBOL_TABLE)
 
 
         def compile( self ) :
@@ -787,7 +801,7 @@ class Program :
             machineCode = self.link(machineCode)
             # Print memory table
 
-            Linker.printMemoryTable(GLOBAL_SYMBOL_TABLE)
+            Linker.getMemoryTable(GLOBAL_SYMBOL_TABLE)
 
             return machineCode
 

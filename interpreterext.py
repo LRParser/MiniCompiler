@@ -128,18 +128,25 @@ def p_program( p ) :
   P.dump()
   log.info('Translating Program')
   instructions = P.translate()
+  symOut = open('symOut.txt','w')
   for inst in instructions :
-    log.debug(inst)
+    symOut.write(str(inst))
   log.info('Optimizing Program')
   instructions = P.optimize(instructions)
+  optimizedOut = open('optimizedOut.txt','w')
   for inst in instructions :
-    log.debug(inst)
+    optimizedOut.write(str(inst))
   log.info('Linking Program')
   instructions = P.link(instructions)
+  linkedOut = open('linkedOut.txt','w')
   for inst in instructions :
-    print(inst)
+    linkedOut.write(str(inst))
   log.info('Printing memory table')
-  P.printMemoryTable()
+  memOut = open('memOut.txt','w')
+  memLines = P.getMemoryTable()
+
+  for line in memLines :
+    memOut.write(str(line))
 
 def p_stmt_list( p ) :
  '''stmt_list : stmt SEMICOLON stmt_list
