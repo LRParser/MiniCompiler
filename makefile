@@ -1,8 +1,6 @@
 PYTHON=python
 INTERPRET=interpreterext.py
-INTERPRETGC=interpreterextgc.py
 PROGRAMEXT=programext.py
-PROGRAMEXTGC=programextgc.py
 
 TEST_DIR=test
 TEST_OUTPUT_DIR1=$(TEST_DIR)/output1
