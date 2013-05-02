@@ -364,7 +364,7 @@ class Ident( Expr ) :
                 log.debug("Entering translate method for Ident: %s", self)
                 entry = SymbolTableUtils.createOrGetSymbolTableReference(self,self.name,VAR)
                 instructions = list()
-                instructions.append(MachineCode(LD,entry.address))
+                instructions.append(MachineCode(LD,self.name))
 
                 return (instructions, self.name)
 
@@ -503,12 +503,12 @@ class Minus( Expr ) :
         instructions = list()
 
         # Get the Left Hand Side.
-        lhsCode = self.lhs.translate(nt,ft)
+        (lhsCode, lhsStorageLocation) = self.lhs.translate(nt,ft)
         for instr in lhsCode :
             instructions.append(instr)
 
         # Get the Right Hand Side.
-        rhsCode = self.rhs.translate(nt,ft)
+        (rhsCode, rhsStorageLocation) = self.rhs.translate(nt,ft)
         for instr in rhsCode :
             instructions.append(instr)
 
@@ -518,25 +518,32 @@ class Minus( Expr ) :
             if(instr.opcode == "ST"):
                 store.append(MachineCode(LD,instr.operand))
 
+        # load the result of lhs into the accumulator, then subtract the rhs
+        resultStorageLocation = TEMP_VARIABLE_FACTORY.get_temp()
+        instructions.append(MachineCode(LD, lhsStorageLocation))
+        instructions.append(MachineCode(SUB, rhsStorageLocation))
+        instructions.append(MachineCode(ST, resultStorageLocation))
+        
+
         # Loop through the instructions in which we are storing a value to a
         # register.
-        for idx, val in enumerate(store):
-            print idx, val
-            if(idx % 2 == 0):
+        #for idx, val in enumerate(store):
+        #print idx, val
+        #    if(idx % 2 == 0):
                 # Even number instructions means we load.
-                instructions.append(MachineCode(LD,val.operand))
-            else:
+             #   instructions.append(MachineCode(LD,val.operand))
+#            else:
                 # Odd number instruction means we append an add instruction.
                 # This will subtract the current operand with the previous one loaded
                 # into the accumulator.
-                instructions.append(MachineCode(SUB,val.operand))
-                instructions.append(MachineCode(ST,TEMP_VARIABLE_FACTORY.get_temp()))
+ #               instructions.append(MachineCode(SUB,val.operand))
+  #              instructions.append(MachineCode(ST,TEMP_VARIABLE_FACTORY.get_temp()))
 
         for val in instructions:
             log.debug("%s %s " % (val.opcode, val.operand))
 
         log.debug("Minus translated")
-        return instructions
+        return (instructions, resultStorageLocation)
 
     def display( self, nt, ft, depth=0 ) :
         print "%sSUB" % (tabstop*depth)
@@ -633,10 +640,12 @@ class AssignStmt( Stmt ) :
             # instructions.append(rhsCode)
             log.debug("RHS of AssignStmt translated")
             
-            # The value computed by the RHS is now in the accumulator. First, ensure the Ident on LHS is in the symbol table for later linking
-            entry = SymbolTableUtils.createOrGetSymbolTableReference(self,UNKNOWN,VAR)          
+            # The value computed by the RHS is now in the accumulator. First, ensure the Ident on LHS is in the
+            # symbol table for later linking 
+            entry = SymbolTableUtils.createOrGetSymbolTableReference(self,self.name,VAR)          
 
-            # First, ensure the Ident is in the symbol table. Then, store the value in the accumulator in the memory address pointed to by the Ident on the LHS
+            # First, ensure the Ident is in the symbol table. Then, store the value in the accumulator in the 
+            # memory address pointed to by the Ident on the LHS
             ldCode = MachineCode(LD, rhsStorageLocation)
             instructions.append(ldCode) 
             assignCode = MachineCode(ST, self.name)
