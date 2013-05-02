@@ -328,7 +328,7 @@ class Number( Expr ) :
                 instructions.append(MachineCode(LD,self))
                 instructions.append(MachineCode(ST,self.tempAddr))
 
-                return instructions
+                return (instructions, self.tempAddr)
 
 
 class Ident( Expr ) :
@@ -366,7 +366,7 @@ class Ident( Expr ) :
                 instructions = list()
                 instructions.append(MachineCode(LD,entry.address))
 
-                return instructions
+                return (instructions, self.name)
 
 class Times( Expr ) :
 	'''expression for binary multiplication'''
@@ -455,7 +455,7 @@ class FunCall( Expr ) :
 
 	def display( self, nt, ft, depth=0 ) :
 		print "%sFunction Call: %s, args:" % (tabstop*depth, self.name)
-		for e in self.argList :
+ 		for e in self.argList :
 			e.display( nt, ft, depth+1 )
 
 
@@ -521,23 +521,25 @@ class AssignStmt( Stmt ) :
             instructions = list()
            
             # First, execute the code corresponding to the RHS
-            rhsCode = self.rhs.translate(nt,ft)
-            instructions.append(rhsCode)
+            (rhsCode, rhsStorageLocation) = self.rhs.translate(nt,ft)
+            for instr in rhsCode :
+                instructions.append(instr)
+            # instructions.append(rhsCode)
             log.debug("RHS of AssignStmt translated")
             
             # The value computed by the RHS is now in the accumulator. First, ensure the Ident on LHS is in the symbol table for later linking
             entry = SymbolTableUtils.createOrGetSymbolTableReference(self,UNKNOWN,VAR)          
 
             # First, ensure the Ident is in the symbol table. Then, store the value in the accumulator in the memory address pointed to by the Ident on the LHS
-            ldCode = MachineCode(LD,rhsCode[-1].operand)
+            ldCode = MachineCode(LD, rhsStorageLocation)
             instructions.append(ldCode) 
-            assignCode = MachineCode(ST,self.name)
+            assignCode = MachineCode(ST, self.name)
             instructions.append(assignCode)
             log.debug("LHS of AssignStmt translated")
   
             GLOBAL_SYMBOL_TABLE.dump()
       
-            return instructions
+            return (instructions, self.name)
 
 class DefineStmt( Stmt ) :
 	'''Binds a proc object to a name'''
@@ -703,7 +705,9 @@ class StmtList :
         def translate( self, nt, ft ) :
                 instructions = list()
                 for s in self.sl :
-                        instructions.append(s.translate( nt, ft ))
+                    (s.instructions, s.storageLocation) = s.translate( nt, ft)
+                    for instr in s.instructions :
+                        instructions.append(instr)
                 return instructions
 
 	def display( self, nt, ft, depth=0 ) :
@@ -810,6 +814,7 @@ class Program :
                 optimizedCode = list()
 
                 for i in range(len(machineCode)) :
+                    print str(i) + ": " + str(machineCode[i])
                     prevInstr = machineCode[i-1]
                     currentInstr = machineCode[i]
                     if(prevInstr.opcode == ST and currentInstr.opcode == LD and (prevInstr.operand == currentInstr.operand)) :
