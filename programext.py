@@ -253,12 +253,12 @@ class Linker(object) :
     @staticmethod
     def linkAddressesToSymbolTable(symbolTable) :
         currentAddr = 1
-        for var in symbolTable.iterate(VAR) :
-            var.address = currentAddr
-            currentAddr = currentAddr + 1
-
         for const in symbolTable.iterate(CONST) :
             const.address = currentAddr
+            currentAddr = currentAddr + 1
+
+        for var in symbolTable.iterate(VAR) :
+            var.address = currentAddr
             currentAddr = currentAddr + 1
 
         for temp in symbolTable.iterate(TEMP) :
