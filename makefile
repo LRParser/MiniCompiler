@@ -13,11 +13,23 @@ TESTER1=runtest1.py
 RUN_TEST1=$(PYTHON) $(TEST_DIR)/$(TESTER1)
 LINT_FILE=pylint.rc
 
+SIM=./ram
+PROG_FILE=symOut.txt
+MEM_FILE=memOut.txt
+MEM_OPT_FILE=optimizedOut.txt
+LINK_FILE=linkedOut.txt
+
+SIM_CODE_DIR=sim/
+BUILD_SIM=$(SIM_CODE_DIR)ram.cpp $(SIM_CODE_DIR)main.cpp -I $(SIM_CODE_DIR)
 
 .PHONY : clean test lint build tags
 
+# define the run-sim function
+# takes two arguments... progFile memFile
+run-simulator = $(SIM) $(1) $(2)
+
 ram:
-	@g++ ram.cpp main.cpp -o ram
+	@g++ $(BUILD_SIM) -o $(SIM)
 
 lint: clean
 	-pylint $(INTERPRET) $(PROGRAMEXT) --rcfile $(TEST_DIR)/$(LINT_FILE)
@@ -38,12 +50,13 @@ test-part1: clean
 test: test-part1
 
 clean:
-	@rm -f *.pyc *.out parsetab.py ram 
+	@rm -f *.pyc *.out parsetab.py ram $(PROG_FILE) $(MEM_FILE) $(MEM_OPT_FILE) $(LINK_FILE)
 	@rm -rf $(TEST_OUTPUT_DIR1)
 
 
 build : clean
 
-compile: clean
+compile: clean ram
 	@$(PYTHON) $(INTERPRET)
-
+	$(call run-simulator,$(PROG_FILE),$(MEM_FILE))
+	$(call run-simulator,$(PROG_FILE),$(MEM_OPT_FILE))
