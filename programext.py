@@ -231,12 +231,12 @@ class SymbolTableUtils :
 
             memLines = list()
 
-            for var in linkedSymbolTable.iterate(VAR) :
-                memLines.append("%d  %s ; %s" % (currentAddr, 0, var) )
-                currentAddr = currentAddr + 1
-            
             for const in linkedSymbolTable.iterate(CONST) :
                 memLines.append("%d  %s ; %s" % (currentAddr, const.value, const) )
+                currentAddr = currentAddr + 1
+            
+            for var in linkedSymbolTable.iterate(VAR) :
+                memLines.append("%d  %s ; %s" % (currentAddr, 0, var) )
                 currentAddr = currentAddr + 1
             
             for temp in linkedSymbolTable.iterate(TEMP) :
@@ -253,12 +253,12 @@ class Linker(object) :
     @staticmethod
     def linkAddressesToSymbolTable(symbolTable) :
         currentAddr = 1
-        for var in symbolTable.iterate(VAR) :
-            var.address = currentAddr
-            currentAddr = currentAddr + 1
-
         for const in symbolTable.iterate(CONST) :
             const.address = currentAddr
+            currentAddr = currentAddr + 1
+
+        for var in symbolTable.iterate(VAR) :
+            var.address = currentAddr
             currentAddr = currentAddr + 1
 
         for temp in symbolTable.iterate(TEMP) :
@@ -328,7 +328,7 @@ class Number( Expr ) :
                 instructions.append(MachineCode(LD,self))
                 instructions.append(MachineCode(ST,self.tempAddr))
 
-                return instructions
+                return (instructions, self.tempAddr)
 
 
 class Ident( Expr ) :
@@ -366,77 +366,186 @@ class Ident( Expr ) :
                 instructions = list()
                 instructions.append(MachineCode(LD,entry.address))
 
-                return instructions
+                return (instructions, self.name)
 
 class Times( Expr ) :
-	'''expression for binary multiplication'''
+    '''expression for binary multiplication'''
 
-	def __init__( self, lhs, rhs ) :
-		'''lhs, rhs are Expr's, the operands'''
+    def __init__( self, lhs, rhs ) :
+        '''lhs, rhs are Expr's, the operands'''
 
-		# test type here?
-		# if type( lhs ) == type( Expr ) :
-		self.lhs = lhs
-		self.rhs = rhs
+        # test type here?
+        # if type( lhs ) == type( Expr ) :
+        self.lhs = lhs
+        self.rhs = rhs
 
-	def eval( self, nt, ft ) :
-		return self.lhs.eval( nt, ft ) * self.rhs.eval( nt, ft )
+    def eval( self, nt, ft ) :
+        return self.lhs.eval( nt, ft ) * self.rhs.eval( nt, ft )
 
-        def translate(self, nt, ft ) :
-                log.debug("Entering translate method for Times")
-                raise Exception("Not implemented")
-                instructions = list()
-                return instructions
+    def translate(self, nt, ft ) :
+        log.debug("Entering translate method for Times")
 
-	def display( self, nt, ft, depth=0 ) :
-		print "%sMULT" % (tabstop*depth)
-		self.lhs.display( nt, ft, depth+1 )
-		self.rhs.display( nt, ft, depth+1 )
-		#print "%s= %i" % (tabstop*depth, self.eval( nt, ft ))
+        temp = list()
+        instructions = list()
+
+        # Get the Left Hand Side.
+        lhsCode = self.lhs.translate(nt,ft)
+        for instr in lhsCode :
+            instructions.append(instr)
+
+        # Get the Right Hand Side.
+        rhsCode = self.rhs.translate(nt,ft)
+        for instr in rhsCode :
+            instructions.append(instr)
+
+        # Only pull out the entries that are storing values
+        store = list()
+        for instr in instructions :
+            if(instr.opcode == "ST"):
+                store.append(MachineCode(LD,instr.operand))
+
+        # Loop through the instructions in which we are storing a value to a
+        # register.
+        for idx, val in enumerate(store):
+            print idx, val
+            if(idx % 2 == 0):
+                # Even number instructions means we load.
+                instructions.append(MachineCode(LD,val.operand))
+            else:
+                # Odd number instruction means we append an add instruction.
+                # This will multiply the current operand with the previous one loaded
+                # into the accumulator.
+                instructions.append(MachineCode(MUL,val.operand))
+                instructions.append(MachineCode(ST,TEMP_VARIABLE_FACTORY.get_temp()))
+
+        for val in instructions:
+            log.debug("%s %s " % (val.opcode, val.operand))
+        log.debug("Times translated")
+        return instructions
+
+    def display( self, nt, ft, depth=0 ) :
+        print "%sMULT" % (tabstop*depth)
+        self.lhs.display( nt, ft, depth+1 )
+        self.rhs.display( nt, ft, depth+1 )
+        #print "%s= %i" % (tabstop*depth, self.eval( nt, ft ))
 
 
 class Plus( Expr ) :
-	'''expression for binary addition'''
+    '''expression for binary addition'''
 
-	def __init__( self, lhs, rhs ) :
-		self.lhs = lhs
-		self.rhs = rhs
+    def __init__( self, lhs, rhs ) :
+        self.lhs = lhs
+        self.rhs = rhs
 
-	def eval( self, nt, ft ) :
-		return self.lhs.eval( nt, ft ) + self.rhs.eval( nt, ft )
+    def eval( self, nt, ft ) :
+        return self.lhs.eval( nt, ft ) + self.rhs.eval( nt, ft )
 
-        def translate(self, nt, ft ) :
-                log.debug("Entering translate method for Plus")
-                raise Exception("Not implemented")
-	
-        def display( self, nt, ft, depth=0 ) :
-		print "%sADD" % (tabstop*depth)
-		self.lhs.display( nt, ft, depth+1 )
-		self.rhs.display( nt, ft, depth+1 )
-		#print "%s= %i" % (tabstop*depth, self.eval( nt, ft ))
+    def translate(self, nt, ft ) :
+        log.debug("Entering translate method for Plus")
+
+        temp = list()
+        instructions = list()
+
+        # Get the Left Hand Side.
+        lhsCode = self.lhs.translate(nt,ft)
+        for instr in lhsCode :
+            instructions.append(instr)
+
+        # Get the Right Hand Side.
+        rhsCode = self.rhs.translate(nt,ft)
+        for instr in rhsCode :
+            instructions.append(instr)
+
+        # Only pull out the entries that are storing values
+        store = list()
+        for instr in instructions :
+            if(instr.opcode == "ST"):
+                store.append(MachineCode(LD,instr.operand))
+
+        # Loop through the instructions in which we are storing a value to a
+        # register.
+        for idx, val in enumerate(store):
+            print idx, val
+            if(idx % 2 == 0):
+                # Even number instructions means we load.
+                instructions.append(MachineCode(LD,val.operand))
+            else:
+                # Odd number instruction means we append an add instruction.
+                # This will add the current operand with the previous one loaded
+                # into the accumulator.
+                instructions.append(MachineCode(ADD,val.operand))
+                instructions.append(MachineCode(ST,TEMP_VARIABLE_FACTORY.get_temp()))
+
+        for val in instructions:
+            log.debug("%s %s " % (val.opcode, val.operand))
+
+        log.debug("Plus translated")
+        return instructions
+
+    def display( self, nt, ft, depth=0 ) :
+        print "%sADD" % (tabstop*depth)
+        self.lhs.display( nt, ft, depth+1 )
+        self.rhs.display( nt, ft, depth+1 )
+        #print "%s= %i" % (tabstop*depth, self.eval( nt, ft ))
 
 
 class Minus( Expr ) :
-	'''expression for binary subtraction'''
+    '''expression for binary subtraction'''
 
-	def __init__( self, lhs, rhs ) :
-		self.lhs = lhs
-		self.rhs = rhs
+    def __init__( self, lhs, rhs ) :
+        self.lhs = lhs
+        self.rhs = rhs
 
-	def eval( self, nt, ft ) :
-		return self.lhs.eval( nt, ft ) - self.rhs.eval( nt, ft )
+    def eval( self, nt, ft ) :
+        return self.lhs.eval( nt, ft ) - self.rhs.eval( nt, ft )
 
-        def translate( self, nt, ft ) :
-                log.debug("Entering translate method for Minus")
-                raise Exception("Not implemented")
-                instructions = list()
-                return instructions()
+    def translate( self, nt, ft ) :
+        log.debug("Entering translate method for Minus")
 
-	def display( self, nt, ft, depth=0 ) :
-		print "%sSUB" % (tabstop*depth)
-		self.lhs.display( nt, ft, depth+1 )
-		self.rhs.display( nt, ft, depth+1 )
-		#print "%s= %i" % (tabstop*depth, self.eval( nt, ft ))
+        temp = list()
+        instructions = list()
+
+        # Get the Left Hand Side.
+        lhsCode = self.lhs.translate(nt,ft)
+        for instr in lhsCode :
+            instructions.append(instr)
+
+        # Get the Right Hand Side.
+        rhsCode = self.rhs.translate(nt,ft)
+        for instr in rhsCode :
+            instructions.append(instr)
+
+        # Only pull out the entries that are storing values
+        store = list()
+        for instr in instructions :
+            if(instr.opcode == "ST"):
+                store.append(MachineCode(LD,instr.operand))
+
+        # Loop through the instructions in which we are storing a value to a
+        # register.
+        for idx, val in enumerate(store):
+            print idx, val
+            if(idx % 2 == 0):
+                # Even number instructions means we load.
+                instructions.append(MachineCode(LD,val.operand))
+            else:
+                # Odd number instruction means we append an add instruction.
+                # This will subtract the current operand with the previous one loaded
+                # into the accumulator.
+                instructions.append(MachineCode(SUB,val.operand))
+                instructions.append(MachineCode(ST,TEMP_VARIABLE_FACTORY.get_temp()))
+
+        for val in instructions:
+            log.debug("%s %s " % (val.opcode, val.operand))
+
+        log.debug("Minus translated")
+        return instructions
+
+    def display( self, nt, ft, depth=0 ) :
+        print "%sSUB" % (tabstop*depth)
+        self.lhs.display( nt, ft, depth+1 )
+        self.rhs.display( nt, ft, depth+1 )
+        #print "%s= %i" % (tabstop*depth, self.eval( nt, ft ))
 
 
 class FunCall( Expr ) :
@@ -455,7 +564,7 @@ class FunCall( Expr ) :
 
 	def display( self, nt, ft, depth=0 ) :
 		print "%sFunction Call: %s, args:" % (tabstop*depth, self.name)
-		for e in self.argList :
+ 		for e in self.argList :
 			e.display( nt, ft, depth+1 )
 
 
@@ -521,23 +630,25 @@ class AssignStmt( Stmt ) :
             instructions = list()
            
             # First, execute the code corresponding to the RHS
-            rhsCode = self.rhs.translate(nt,ft)
-            instructions.append(rhsCode)
+            (rhsCode, rhsStorageLocation) = self.rhs.translate(nt,ft)
+            for instr in rhsCode :
+                instructions.append(instr)
+            # instructions.append(rhsCode)
             log.debug("RHS of AssignStmt translated")
             
             # The value computed by the RHS is now in the accumulator. First, ensure the Ident on LHS is in the symbol table for later linking
             entry = SymbolTableUtils.createOrGetSymbolTableReference(self,UNKNOWN,VAR)          
 
             # First, ensure the Ident is in the symbol table. Then, store the value in the accumulator in the memory address pointed to by the Ident on the LHS
-            ldCode = MachineCode(LD,rhsCode[-1].operand)
+            ldCode = MachineCode(LD, rhsStorageLocation)
             instructions.append(ldCode) 
-            assignCode = MachineCode(ST,self.name)
+            assignCode = MachineCode(ST, self.name)
             instructions.append(assignCode)
             log.debug("LHS of AssignStmt translated")
   
             GLOBAL_SYMBOL_TABLE.dump()
       
-            return instructions
+            return (instructions, self.name)
 
 class DefineStmt( Stmt ) :
 	'''Binds a proc object to a name'''
@@ -703,7 +814,9 @@ class StmtList :
         def translate( self, nt, ft ) :
                 instructions = list()
                 for s in self.sl :
-                        instructions.append(s.translate( nt, ft ))
+                    (s.instructions, s.storageLocation) = s.translate( nt, ft)
+                    for instr in s.instructions :
+                        instructions.append(instr)
                 return instructions
 
 	def display( self, nt, ft, depth=0 ) :
@@ -810,6 +923,7 @@ class Program :
                 optimizedCode = list()
 
                 for i in range(len(machineCode)) :
+                    print str(i) + ": " + str(machineCode[i])
                     prevInstr = machineCode[i-1]
                     currentInstr = machineCode[i]
                     if(prevInstr.opcode == ST and currentInstr.opcode == LD and (prevInstr.operand == currentInstr.operand)) :
