@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# interpreterext.py - 
+# interpreterext.py -
 #		A python implementation of the mini language, with user-defined
 #		functions
 #
@@ -126,21 +126,25 @@ def p_program( p ) :
   print 'Running Program'
   P.eval()
   P.dump()
+
   log.info('Translating Program')
   instructions = P.translate()
   symOut = open('symOut.txt','w')
   for inst in instructions :
     symOut.write(str(inst)+'\n')
+
   log.info('Optimizing Program')
   instructions = P.optimize(instructions)
   optimizedOut = open('optimizedOut.txt','w')
   for inst in instructions :
     optimizedOut.write(str(inst)+'\n')
+
   log.info('Linking Program')
   instructions = P.link(instructions)
   linkedOut = open('linkedOut.txt','w')
   for inst in instructions :
     linkedOut.write(str(inst)+'\n')
+
   log.info('Printing memory table')
   memOut = open('memOut.txt','w')
   memLines = P.getMemoryTable()
