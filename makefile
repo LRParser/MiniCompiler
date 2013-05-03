@@ -41,7 +41,7 @@ lint: clean
 
 # For emacs users...
 tags:
-	@etags *.cpp *.h *.py
+	@etags *.py
 
 # This is the idea... but it needs to be cleaned up to handle a growing number of tests
 test-part1: clean
