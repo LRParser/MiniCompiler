@@ -109,6 +109,9 @@ class MachineCode(object):
 
 
 
+
+
+
 class Label(object):
 
     def __init__(self, label=None):
@@ -173,6 +176,12 @@ class TempVariableFactory(object):
         return temp
 
 TEMP_VARIABLE_FACTORY = TempVariableFactory()
+
+
+class NoOp(MachineCode):
+
+    def __init__(self, label=None):
+        MachineCode.__init__(self, ST, TEMP_VARIABLE_FACTORY.get_temp(), label)
 
 
 class SymbolTableEntry(object):
@@ -275,8 +284,6 @@ class Linker(object) :
         for temp in symbolTable.iterate(TEMP) :
             temp.address = currentAddr
             currentAddr = currentAddr + 1
-
-NOOP = MachineCode(ST, TEMP_VARIABLE_FACTORY.get_temp())
 
 class Expr(object) :
     '''Virtual base class for expressions in the language'''
@@ -688,9 +695,10 @@ class IfStmt( Stmt ) :
         (falseBody, storageLocation) = self.fBody.translate(nt, ft)
         if not falseBody:
             #insert NOOP
-            instructions.append(MachineCode(NOOP.opcode, NOOP.operand, falseBodyLabel))
+            instructions.append(NoOp(falseBodyLabel))
         else:
-            falseBody[0] = MachineCode(falseBody[0].opcode, falseBody[0].operand, falseBodyLabel)
+            falseBody[0].label = falseBodyLabel
+
             for instr in falseBody :
                 instructions.append(instr)
 
@@ -698,7 +706,7 @@ class IfStmt( Stmt ) :
         instructions.append(MachineCode(LD, storageLocation))
 
         # insert the nextStatement label
-        instructions.append(MachineCode(NOOP.opcode, NOOP.operand, nextStatement))
+        instructions.append(NoOp(nextStatement))
 
         return (instructions,storageLocation)
 
@@ -735,7 +743,8 @@ class WhileStmt( Stmt ) :
         log.debug("Condition returned %s storage: %s" % (condBody, storageLocation))
 
         if len(condBody) is not 0:
-            condBody[0] = MachineCode(condBody[0].opcode, condBody[0].operand, loopBeginLabel)
+            condBody[0].label = loopBeginlabel
+
             log.debug("Replaced machine code with: %s " % condBody[0])
 
             for instr in condBody :
@@ -768,7 +777,7 @@ class WhileStmt( Stmt ) :
         instructions.append(MachineCode(JMP, loopBeginLabel))
 
         # insert the loopEndLabel
-        instructions.append(MachineCode(NOOP.opcode, NOOP.operand, loopEndLabel))
+        instructions.append(NoOp(loopEndLabel))
 
         return (instructions,storageLocation)
 
