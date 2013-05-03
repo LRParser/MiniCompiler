@@ -660,7 +660,7 @@ class IfStmt( Stmt ) :
         instructions = list()
 
         # translate the conditional expression
-        (condCode, storageLocation) = self.translate(self.cond, nt, ft)
+        (condCode, storageLocation) = self.cond.translate( nt, ft)
         for instr in condCode :
             instructions.append(instr)
 
@@ -669,11 +669,11 @@ class IfStmt( Stmt ) :
 
         # if result is false (<= 0), jump over trueBody
         falseBodyLabel = LABEL_FACTORY.get_label()
-        instructions.append(MachineCode(JMN, falseBodyLabel,False,True))
-        instructions.append(MachineCode(JMZ, falseBodyLabel,False,True))
+        instructions.append(MachineCode(JMN, falseBodyLabel))
+        instructions.append(MachineCode(JMZ, falseBodyLabel))
 
         # translate the trueBody
-        (trueBody, storageLocation) = self.translate(self.tBody, nt, ft)
+        (trueBody, storageLocation) = self.tBody.translate(nt, ft)
         for instr in trueBody :
             instructions.append(instr)
 
@@ -682,21 +682,23 @@ class IfStmt( Stmt ) :
 
         # jump over the falseBody
         nextStatement = LABEL_FACTORY.get_label()
-        instructions.append(MachineCode(JMP, nextStatement,False,True))
-
-        # insert the falseBodyLabel
-        instructions.append(falseBodyLabel)
+        instructions.append(MachineCode(JMP, nextStatement))
 
         # translate the flaseBody
-        (falseBody, storageLocation) = self.translate(self.fBody, nt, ft)
-        for instr in falseBody :
-            instructions.append(instr)
+        (falseBody, storageLocation) = self.fBody.translate(nt, ft)
+        if not falseBody:
+            #insert NOOP
+            instructions.append(MachineCode(NOOP.opcode, NOOP.operand, falseBodyLabel))
+        else:
+            falseBody[0] = MachineCode(falseBody[0].opcode, falseBody[0].operand, falseBodyLabel)
+            for instr in falseBody :
+                instructions.append(instr)
 
         # load resulf of falseBody
         instructions.append(MachineCode(LD, storageLocation))
 
         # insert the nextStatement label
-        instructions.append(nextStatement)
+        instructions.append(MachineCode(NOOP.opcode, NOOP.operand, nextStatement))
 
         return (instructions,storageLocation)
 
@@ -733,7 +735,7 @@ class WhileStmt( Stmt ) :
         log.debug("Condition returned %s storage: %s" % (condBody, storageLocation))
 
         if len(condBody) is not 0:
-            condBody[0] = MachineCode(condBody[0].opcode, condBody[0].operand, loopBeginlabel)
+            condBody[0] = MachineCode(condBody[0].opcode, condBody[0].operand, loopBeginLabel)
             log.debug("Replaced machine code with: %s " % condBody[0])
 
             for instr in condBody :
