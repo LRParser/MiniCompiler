@@ -89,17 +89,25 @@ UNKNOWN = "?"
 ######   CLASSES   ##################
 class MachineCode(object):
 
-    def __init__(self, opcode=None, operand=None, isLabel = False, isJump = False):
+    def __init__(self, opcode=None, operand=None, label=None):
         self.opcode = opcode
         self.operand = operand
-        self.isLabel = isLabel
-        self.isJump = isJump
+        self.label = label
+
+    @property
+    def is_jump(self):
+        if 'JM' in self.opcode:
+            return True
+        else:
+            return False
 
     def __str__(self):
         if(self.operand is None) :
             return "%s" % (self.opcode)
-        else :
+        else:
             return "%s %s" % (self.opcode, self.operand)
+
+
 
 class Label(object):
 
@@ -166,9 +174,10 @@ class TempVariableFactory(object):
 
 TEMP_VARIABLE_FACTORY = TempVariableFactory()
 
+
 class SymbolTableEntry(object):
 
-    def __init__(self, value=None, entryType=None, address=UNKNOWN):
+    def __init__(self, value=None, entryType=None, address=UNKNOWN, label=None):
         """ Class representing a Symbol Table Entry
 
         :param value: Value of the entry
@@ -266,6 +275,8 @@ class Linker(object) :
         for temp in symbolTable.iterate(TEMP) :
             temp.address = currentAddr
             currentAddr = currentAddr + 1
+
+NOOP = MachineCode(ST, TEMP_VARIABLE_FACTORY.get_temp())
 
 class Expr(object) :
     '''Virtual base class for expressions in the language'''
@@ -710,27 +721,38 @@ class WhileStmt( Stmt ) :
             self.body.eval( nt, ft )
 
     def translate( self, nt, ft) :
+        log.debug("Entering translate for WhileStmt")
         instructions = list()
 
         # insert the loopBeginlabel
         loopBeginLabel = LABEL_FACTORY.get_label()
-        instructions.append(MachineCode(loopBeginLabel,None,True))
 
         # translate the body of the conditional
         (condBody, storageLocation) = self.cond.translate(nt, ft)
 
-        for instr in condBody :
-            instructions.append(instr)
-            # print to log the result of condBody
-            log.debug(instr)
+        log.debug("Condition returned %s storage: %s" % (condBody, storageLocation))
 
-        # load the result of condBody
-        instructions.append(MachineCode(LD, storageLocation))
+        if len(condBody) is not 0:
+            condBody[0] = MachineCode(condBody[0].opcode, condBody[0].operand, loopBeginlabel)
+            log.debug("Replaced machine code with: %s " % condBody[0])
+
+            for instr in condBody :
+                instructions.append(instr)
+                # print to log the result of condBody
+                log.debug(instr)
+
+            # load the result of condBody
+            instructions.append(MachineCode(LD, storageLocation))
+
+        else:
+            #point the label to the first instruction
+            instructions.append(MachineCode(LD, storageLocation,loopBeginLabel))
+            log.debug("Loop begin: %s" % instructions[0])
 
         # if the result is false (<= 0), jump to loopEndLabel
         loopEndLabel = LABEL_FACTORY.get_label()
-        instructions.append(MachineCode(JMN, loopEndLabel,False,True))
-        instructions.append(MachineCode(JMZ, loopEndLabel,False,True))
+        instructions.append(MachineCode(JMN, loopEndLabel))
+        instructions.append(MachineCode(JMZ, loopEndLabel))
 
         # translate the loopBody
         (loopBody, storageLocation) = self.body.translate(nt, ft)
@@ -741,10 +763,10 @@ class WhileStmt( Stmt ) :
         instructions.append(MachineCode(LD, storageLocation))
 
         # go back to the begining of the loop
-        instructions.append(MachineCode(JMP, loopBeginLabel,False,True))
+        instructions.append(MachineCode(JMP, loopBeginLabel))
 
         # insert the loopEndLabel
-        instructions.append(MachineCode(loopEndLabel,None,True))
+        instructions.append(MachineCode(NOOP.opcode, NOOP.operand, loopEndLabel))
 
         return (instructions,storageLocation)
 
@@ -855,12 +877,20 @@ class Program :
         for key in GLOBAL_SYMBOL_TABLE.iterkeys() :
             log.debug(key)
         for line in machineCode :
-            if(line.operand is None or line.isJump or line.isLabel) :
+            if(line.operand is None or line.is_jump) :
                 # No need to link the HLT instruction
                 continue
             linkedAddr = GLOBAL_SYMBOL_TABLE[line.operand].address
             line.operand = linkedAddr
             log.debug("Linked operand %s to address: %s" % (line.operand, linkedAddr))
+
+        for inst in machineCode:
+            if (inst.is_jump):
+                for i, item in enumerate(machineCode):
+                    if inst.operand == item.label:
+                        log.debug("Found jump")
+                        inst.operand = i + 1
+
         return machineCode
 
     def getMemoryTable( self ) :
@@ -886,7 +916,11 @@ class Program :
             prevInstr = machineCode[i-1]
             currentInstr = machineCode[i]
             if(prevInstr.opcode == ST and currentInstr.opcode == LD and (prevInstr.operand == currentInstr.operand)) :
-                log.debug("Removing redundant LD statement")
+                if (currentInstr.label is None):
+                    log.debug("Removing redundant LD statement")
+                else:
+                    optimizedCode[-1].label = currentInstr.label
+                    log.debug("Moved label %s" % currentInstr.label)
             else :
                 optimizedCode.append(currentInstr)
 
