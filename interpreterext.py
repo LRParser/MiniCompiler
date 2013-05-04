@@ -85,7 +85,7 @@ t_COMMA		= r','
 
 def t_IDENT( t ):
 	#r'[a-zA-Z_][a-zA-Z_0-9]*'
-	r'[a-z]+'
+	r'[a-zA-Z]+'
 	t.type = reserved.get( t.value, 'IDENT' )    # Check for reserved words
 	return t
 
