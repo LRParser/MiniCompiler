@@ -15,10 +15,17 @@ RUN_TEST1=$(PYTHON) $(TEST_DIR)/$(TESTER1)
 LINT_FILE=pylint.rc
 
 SIM=./ram
-SYMBOL_FILE=symOut.txt
-MEM_FILE=memOut.txt
-MEM_OPT_FILE=optimizedOut.txt
-LINK_FILE=linkedOut.txt
+TRANS_OUT_FILE=symOut.txt
+
+#non-optimized versions
+NON_OPT_MEM_FILE=mem-dump.txt
+NON_OPT_PROGRAM=program-non-opt.txt
+
+#optimized versions
+OPT_PROGRAM=program-opt.txt
+OPT_MEM_FILE=mem-dump-opt.txt
+
+OUTPUT_FILES = $(TRANS_OUT_FILE) $(NON_OPT_PROGRAM) $(NON_OPT_MEM_FILE) $(OPT_PROGRAM) $(OPT_MEM_FILE)
 
 SIM_CODE_DIR=sim/
 BUILD_SIM=$(SIM_CODE_DIR)ram.cpp $(SIM_CODE_DIR)main.cpp -I $(SIM_CODE_DIR)
@@ -26,7 +33,7 @@ BUILD_SIM=$(SIM_CODE_DIR)ram.cpp $(SIM_CODE_DIR)main.cpp -I $(SIM_CODE_DIR)
 RELEASE_DIR=release
 RELEASE_FILE=$(ASSIGNMENT).tar.gz
 
-.PHONY : clean test lint build tags
+.PHONY : clean test lint build tags view-trans view-link view-op
 
 # define the run-sim function
 # takes two arguments... progFile memFile
@@ -34,6 +41,22 @@ run-simulator = $(SIM) $(1) $(2)
 
 ram:
 	@g++ $(BUILD_SIM) -o $(SIM)
+
+run: ram
+	@$(call run-simulator,$(NON_OPT_PROGRAM),$(NON_OPT_MEM_FILE))
+
+run-op: ram
+	@$(call run-simulator,$(OPT_PROGRAM),$(OPT_MEM_FILE))
+
+
+view-trans:
+	@cat $(TRANS_OUT_FILE)
+
+view-link:
+	@cat $(NON_OPT_PROGRAM)
+
+view-op:
+	@cat $(OPT_PROGRAM)
 
 lint: clean
 	-pylint $(INTERPRET) $(PROGRAMEXT) --rcfile $(TEST_DIR)/$(LINT_FILE)
@@ -54,17 +77,15 @@ test-part1: clean
 test: test-part1
 
 clean:
-	@rm -f *.pyc *.out parsetab.py ram $(SYMBOL_FILE) $(MEM_FILE) $(MEM_OPT_FILE) $(LINK_FILE)
+	@rm -f *.pyc *.out parsetab.py ram $(OUTPUT_FILES)
 	@rm -rf $(TEST_OUTPUT_DIR1)
 	@-rm -rf $(RELEASE_DIR)
 
 
 build : clean
 
-compile: clean ram
+compile: clean
 	@$(PYTHON) $(INTERPRET)
-	$(call run-simulator,$(LINK_FILE),$(MEM_FILE))
-#	$(call run-simulator,$(MEM_OPT_FILE),$(MEM_FILE))
 
 release: clean
 	@cd ..; \
