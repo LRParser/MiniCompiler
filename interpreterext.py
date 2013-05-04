@@ -118,39 +118,65 @@ import ply.yacc as yacc
 
 	# create a function for each production (note the prefix)
 	# The rule is given in the doc string
+def get_compile_functions(program):
+
+  def translate():
+    log.info('Translating Program')
+    instructions = program.translate()
+    symOut = open('symOut.txt','w')
+    for inst in instructions :
+      symOut.write(str(inst)+'\n')
+    return instructions
+
+  def optimize(instructions_input):
+    log.info('Optimizing Program')
+    return program.optimize(instructions_input)
+
+
+  def link(instructions_input, outfile):
+    log.info('Linking Program')
+    instructions = program.link(instructions_input)
+    linkedOut = open(outfile,'w')
+    for inst in instructions :
+      linkedOut.write(str(inst)+'\n')
+    return instructions
+
+  def memdump(outfile):
+    log.info('Printing memory table')
+    memOut = open(outfile,'w')
+    memLines = program.getMemoryTable()
+
+    for line in memLines :
+      memOut.write(str(line)+'\n')
+
+  return translate, optimize, link, memdump
 
 def p_program( p ) :
   'program : stmt_list'
+
   P = Program( p[1] )
   #P.display()
   print 'Running Program'
   P.eval()
   P.dump()
 
-  log.info('Translating Program')
-  instructions = P.translate()
-  symOut = open('symOut.txt','w')
-  for inst in instructions :
-    symOut.write(str(inst)+'\n')
+  translate, optimize, link, memdump = get_compile_functions(P)
 
-  log.info('Optimizing Program')
-  instructions = P.optimize(instructions)
-  optimizedOut = open('optimizedOut.txt','w')
-  for inst in instructions :
-    optimizedOut.write(str(inst)+'\n')
+  #first run without optimizations
+  instructions = translate()
+  link(instructions, "program-non-opt.txt")
+  memdump("mem-dump.txt")
 
-  log.info('Linking Program')
-  instructions = P.link(instructions)
-  linkedOut = open('linkedOut.txt','w')
-  for inst in instructions :
-    linkedOut.write(str(inst)+'\n')
+  GLOBAL_SYMBOL_TABLE.clear()
+  LABEL_FACTORY.count = 0
+  TEMP_VARIABLE_FACTORY.count = 0
 
-  log.info('Printing memory table')
-  memOut = open('memOut.txt','w')
-  memLines = P.getMemoryTable()
+  #now optimize (requires re-translate)
+  instructions = translate()
+  instructions = optimize(instructions)
+  link(instructions, "program-opt.txt")
+  memdump("mem-dump-opt.txt")
 
-  for line in memLines :
-    memOut.write(str(line)+'\n')
 
 def p_stmt_list( p ) :
  '''stmt_list : stmt SEMICOLON stmt_list

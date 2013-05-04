@@ -10,7 +10,13 @@ then
     ls $test_dir
     exit
 fi
-make compile < $test_dir/$1
+make compile < $1
+echo "******************************"
+echo "Running Simulator"
+make run
+echo "******************************"
+echo "Running Optimized Simulator"
+make run-op
 echo "******************************"
 echo "Original Program"
-cat $test_dir/$1
+cat $1
