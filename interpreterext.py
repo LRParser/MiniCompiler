@@ -156,9 +156,9 @@ def p_program( p ) :
 
   P = Program( p[1] )
   #P.display()
-  print 'Running Program'
-  P.eval()
-  P.dump()
+  #print 'Running Program'
+  #P.eval()
+  #P.dump()
 
   translate, optimize, link, memdump = get_compile_functions(P)
 
