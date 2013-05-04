@@ -1,5 +1,6 @@
 TOP ?= $(shell pwd)
 
+HOST=$(shell hostname)
 ASSIGNMENT=A3
 PYTHON=python
 INTERPRET=interpreterext.py
@@ -14,7 +15,12 @@ TESTER1=runtest1.py
 RUN_TEST1=$(PYTHON) $(TEST_DIR)/$(TESTER1)
 LINT_FILE=pylint.rc
 
-SIM=./ram
+ifneq (,$(findstring tux,$(HOST)))
+	SIM=~jjohnson/bin/ram
+else
+	SIM=./ram
+endif
+
 TRANS_OUT_FILE=symOut.txt
 
 #non-optimized versions
@@ -41,6 +47,7 @@ run-simulator = $(SIM) $(1) $(2)
 
 ram:
 	@g++ $(BUILD_SIM) -o $(SIM)
+
 
 run: ram
 	@$(call run-simulator,$(NON_OPT_PROGRAM),$(NON_OPT_MEM_FILE))
