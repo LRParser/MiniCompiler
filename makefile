@@ -48,11 +48,10 @@ run-simulator = $(SIM) $(1) $(2)
 ram:
 	@g++ $(BUILD_SIM) -o $(SIM)
 
-
-run: ram
+run:
 	@$(call run-simulator,$(NON_OPT_PROGRAM),$(NON_OPT_MEM_FILE))
 
-run-op: ram
+run-op:
 	@$(call run-simulator,$(OPT_PROGRAM),$(OPT_MEM_FILE))
 
 
@@ -84,7 +83,7 @@ test-part1: clean
 test: test-part1
 
 clean:
-	@rm -f *.pyc *.out parsetab.py ram $(OUTPUT_FILES)
+	@rm -f *.pyc *.out parsetab.py $(OUTPUT_FILES)
 	@rm -rf $(TEST_OUTPUT_DIR1)
 	@-rm -rf $(RELEASE_DIR)
 
@@ -95,6 +94,7 @@ compile: clean
 	@$(PYTHON) $(INTERPRET)
 
 release: clean
+	@-rm ram
 	@cd ..; \
 	cp -R $(TOP) $(ASSIGNMENT); \
 	tar -zcf $(RELEASE_FILE) --exclude .git $(ASSIGNMENT); \
