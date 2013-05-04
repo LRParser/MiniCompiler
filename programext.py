@@ -810,24 +810,15 @@ class StmtList :
             s.eval( nt, ft )
 
     def translate( self, nt, ft ) :
+
         instructions = list()
-        priorLabel = None
         for s in self.sl :
             (s.instructions, s.storageLocation) = s.translate( nt, ft)
             lastStorageLocation = s.storageLocation
             for instr in s.instructions :
-                if priorLabel is not None :
-                    instr.label = priorLabel.label
-                    priorLabel = None
-                else :
-                    if isinstance(instr, NoOp) :
-                        priorLabel = instr
-                    else :
-                        instructions.append(instr)
-        if priorLabel is not None :
-            instructions.append(NoOp(priorLabel.label))
-
+                instructions.append(instr)
         return (instructions,lastStorageLocation)
+
 
     def display( self, nt, ft, depth=0 ) :
         print "%sSTMT LIST" % (tabstop*depth)
@@ -891,20 +882,30 @@ class Program :
     def eval( self ) :
         self.stmtList.eval( self.nameTable, self.funcTable )
 
+    def remove_no_ops(self, instructions):
+
+        for i,item in enumerate(list(instructions)):
+            if isinstance(item, NoOp):
+                log.debug("found Noop at %s" % i)
+                if item.label is not None:
+                    log.debug("Had label %s" % item.label)
+                    instructions[i+1].label = item.label
+                    instructions[i] = None
+
+        return [x for x in instructions if x is not None]
+
+
     def translate( self ) :
         nestedStmtCode, lastStorageLocation = self.stmtList.translate(self.nameTable, self.funcTable)
         flattenedStmtCode = list(self.flattenList(nestedStmtCode))
 
+        flattenedStmtCode.append(MachineCode(HLT))
+
+        flattenedStmtCode = self.remove_no_ops(flattenedStmtCode)
+
         # Append a HLT instruction
-        if isinstance(flattenedStmtCode[-1], NoOp) :
-            log.debug("modifying Label NoOp to HLT statement")
-            log.debug("prior: %s" % flattenedStmtCode[-1])
-            haltStmt = MachineCode(HLT)
-            haltStmt.label = flattenedStmtCode[-1].label
-            flattenedStmtCode[-1] = haltStmt
-            log.debug("post: %s" % flattenedStmtCode[-1])
-        else :
-            flattenedStmtCode.append(MachineCode(HLT))
+
+
 
         return flattenedStmtCode
 
