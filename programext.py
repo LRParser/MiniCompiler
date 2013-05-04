@@ -979,10 +979,17 @@ class Program :
             instrMinus1 = machineCode[i-1]
             instrMinus2 = machineCode[i-2]
 
-            if(currentInstr.opcode == ST and instrMinus1.opcode == ADD and instrMinus2.opcode == LD) :
+            if(currentInstr.opcode == ST and (instrMinus1.opcode == ADD or instrMinus1.opcode == SUB or instrMinus1.opcode == MUL) and instrMinus2.opcode == LD) :
                 if(isinstance(currentInstr.operand,TempVariable) and isinstance(instrMinus1.operand,Number) and isinstance(instrMinus2.operand,Number)) :
                     # Create a new constant that holds the computed result
-                    foldedConst = Number(instrMinus1.operand.value + instrMinus2.operand.value)
+                    foldedConst = None
+                    if(instrMinus1.opcode == ADD) :
+                        foldedConst = Number(instrMinus2.operand.value + instrMinus1.operand.value)
+                    elif(instrMinus1.opcode == SUB) :
+                        foldedConst = Number(instrMinus2.operand.value - instrMinus1.operand.value)
+                    else :
+                        foldedConst = Number(instrMinus2.operand.value * instrMinus1.operand.value)
+
                     entry = SymbolTableUtils.createOrGetSymbolTableReference(foldedConst,foldedConst.value,CONST)
                     insertionMap[i-2] = MachineCode(LD,foldedConst)
                     linesToRemove.append(currentInstr)

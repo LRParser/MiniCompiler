@@ -16,8 +16,8 @@ interpreterext.py		** Contains the grammar for the original mini language. Also 
 
                         ** Three text files will be generated as output.
                         ** 1.) symOut.txt - Contains the RAL code prior to optimization and linking.
-                        ** 2.) optimizedOut.txt - Contains the RAL code after optimization is performed.
-                        ** 3.) linkedOut.txt - Contains the RAL code after the linker has been executed.
+                        ** 2.) program-out.txt - Contains the RAL code after linking is performed.
+                        ** 3.) program-opt-out.txt - Contains the RAL code after optimization and linking has been executed.
                         ** 4.) memOut.txt - Breaks down the VARS, CONSTS and TEMP variables stored in memory and
                         **     and displays their name, and memory address.
 
