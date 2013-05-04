@@ -101,17 +101,22 @@ class MachineCode(object):
         else:
             return False
 
-    def __str__(self):
-        if(self.operand is None) :
+    def __str__(self) :
+        if (self.operand is None) :
+            return "%s" % (self.opcode)
+        else:
+            return "%s %s" % (self.opcode, self.operand)
+
+    def symbolicStr(self):
+        if (self.label is not None) :
+            if (self.opcode is HLT) :
+                return "%s: %s" % (self.label, self.opcode)
+            else :
+                return "%s: %s %s" % (self.label, self.opcode, self.operand)
+        elif (self.operand is None) :
             return "    %s" % (self.opcode)
-        elif (self.label is not None) :
-            return "%s: %s %s" % (self.label, self.opcode, self.operand)
         else:
             return "    %s %s" % (self.opcode, self.operand)
-
-
-
-
 
 
 class Label(object):
@@ -183,7 +188,7 @@ TEMP_VARIABLE_FACTORY = TempVariableFactory()
 class NoOp(MachineCode):
 
     def __init__(self, label=None):
-        MachineCode.__init__(self, ST, TEMP_VARIABLE_FACTORY.get_temp(), label)
+        MachineCode.__init__(self, None, None, label)
 
 
 class SymbolTableEntry(object):
@@ -806,11 +811,22 @@ class StmtList :
 
     def translate( self, nt, ft ) :
         instructions = list()
+        priorLabel = None
         for s in self.sl :
             (s.instructions, s.storageLocation) = s.translate( nt, ft)
             lastStorageLocation = s.storageLocation
             for instr in s.instructions :
-                instructions.append(instr)
+                if priorLabel is not None :
+                    instr.label = priorLabel.label
+                    priorLabel = None
+                else :
+                    if isinstance(instr, NoOp) :
+                        priorLabel = instr
+                    else :
+                        instructions.append(instr)
+        if priorLabel is not None :
+            instructions.append(NoOp(priorLabel.label))
+
         return (instructions,lastStorageLocation)
 
     def display( self, nt, ft, depth=0 ) :
@@ -880,8 +896,15 @@ class Program :
         flattenedStmtCode = list(self.flattenList(nestedStmtCode))
 
         # Append a HLT instruction
-
-        flattenedStmtCode.append(MachineCode(HLT))
+        if isinstance(flattenedStmtCode[-1], NoOp) :
+            log.debug("modifying Label NoOp to HLT statement")
+            log.debug("prior: %s" % flattenedStmtCode[-1])
+            haltStmt = MachineCode(HLT)
+            haltStmt.label = flattenedStmtCode[-1].label
+            flattenedStmtCode[-1] = haltStmt
+            log.debug("post: %s" % flattenedStmtCode[-1])
+        else :
+            flattenedStmtCode.append(MachineCode(HLT))
 
         return flattenedStmtCode
 
