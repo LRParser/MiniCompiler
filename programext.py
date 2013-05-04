@@ -103,9 +103,11 @@ class MachineCode(object):
 
     def __str__(self):
         if(self.operand is None) :
-            return "%s" % (self.opcode)
+            return "    %s" % (self.opcode)
+        elif (self.label is not None) :
+            return "%s: %s %s" % (self.label, self.opcode, self.operand)
         else:
-            return "%s %s" % (self.opcode, self.operand)
+            return "    %s %s" % (self.opcode, self.operand)
 
 
 
@@ -691,7 +693,7 @@ class IfStmt( Stmt ) :
         nextStatement = LABEL_FACTORY.get_label()
         instructions.append(MachineCode(JMP, nextStatement))
 
-        # translate the flaseBody
+        # translate the falseBody
         (falseBody, storageLocation) = self.fBody.translate(nt, ft)
         if not falseBody:
             #insert NOOP
