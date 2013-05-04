@@ -1,0 +1,5 @@
+LDA 2
+MUL 3
+STA 5
+STA 4
+HLT

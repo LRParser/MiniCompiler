@@ -1,0 +1,7 @@
+    LDA 1
+    STA f
+    LDA 2
+    STA f
+    LDA 1
+    STA f
+    HLT

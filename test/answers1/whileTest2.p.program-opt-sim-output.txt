@@ -1,0 +1,220 @@
+Initial Memory Configuration
+RAM Memory Contents
+
+1   0
+2   1
+3   5
+4   10
+5   -10
+6   0
+7   0
+8   0
+9   0
+PC: 1 Opcode: 1 Operand: 3
+PC: 2 Opcode: 3 Operand: 6
+PC: 3 Opcode: 1 Operand: 5
+PC: 4 Opcode: 3 Operand: 7
+PC: 5 Opcode: 1 Operand: 6
+PC: 6 Opcode: 11 Operand: 22
+PC: 7 Opcode: 10 Operand: 22
+PC: 8 Opcode: 1 Operand: 7
+PC: 9 Opcode: 11 Operand: 16
+PC: 16 Opcode: 1 Operand: 7
+PC: 17 Opcode: 5 Operand: 2
+PC: 18 Opcode: 3 Operand: 8
+PC: 19 Opcode: 3 Operand: 7
+PC: 20 Opcode: 1 Operand: 7
+PC: 21 Opcode: 8 Operand: 5
+PC: 5 Opcode: 1 Operand: 6
+PC: 6 Opcode: 11 Operand: 22
+PC: 7 Opcode: 10 Operand: 22
+PC: 8 Opcode: 1 Operand: 7
+PC: 9 Opcode: 11 Operand: 16
+PC: 16 Opcode: 1 Operand: 7
+PC: 17 Opcode: 5 Operand: 2
+PC: 18 Opcode: 3 Operand: 8
+PC: 19 Opcode: 3 Operand: 7
+PC: 20 Opcode: 1 Operand: 7
+PC: 21 Opcode: 8 Operand: 5
+PC: 5 Opcode: 1 Operand: 6
+PC: 6 Opcode: 11 Operand: 22
+PC: 7 Opcode: 10 Operand: 22
+PC: 8 Opcode: 1 Operand: 7
+PC: 9 Opcode: 11 Operand: 16
+PC: 16 Opcode: 1 Operand: 7
+PC: 17 Opcode: 5 Operand: 2
+PC: 18 Opcode: 3 Operand: 8
+PC: 19 Opcode: 3 Operand: 7
+PC: 20 Opcode: 1 Operand: 7
+PC: 21 Opcode: 8 Operand: 5
+PC: 5 Opcode: 1 Operand: 6
+PC: 6 Opcode: 11 Operand: 22
+PC: 7 Opcode: 10 Operand: 22
+PC: 8 Opcode: 1 Operand: 7
+PC: 9 Opcode: 11 Operand: 16
+PC: 16 Opcode: 1 Operand: 7
+PC: 17 Opcode: 5 Operand: 2
+PC: 18 Opcode: 3 Operand: 8
+PC: 19 Opcode: 3 Operand: 7
+PC: 20 Opcode: 1 Operand: 7
+PC: 21 Opcode: 8 Operand: 5
+PC: 5 Opcode: 1 Operand: 6
+PC: 6 Opcode: 11 Operand: 22
+PC: 7 Opcode: 10 Operand: 22
+PC: 8 Opcode: 1 Operand: 7
+PC: 9 Opcode: 11 Operand: 16
+PC: 16 Opcode: 1 Operand: 7
+PC: 17 Opcode: 5 Operand: 2
+PC: 18 Opcode: 3 Operand: 8
+PC: 19 Opcode: 3 Operand: 7
+PC: 20 Opcode: 1 Operand: 7
+PC: 21 Opcode: 8 Operand: 5
+PC: 5 Opcode: 1 Operand: 6
+PC: 6 Opcode: 11 Operand: 22
+PC: 7 Opcode: 10 Operand: 22
+PC: 8 Opcode: 1 Operand: 7
+PC: 9 Opcode: 11 Operand: 16
+PC: 16 Opcode: 1 Operand: 7
+PC: 17 Opcode: 5 Operand: 2
+PC: 18 Opcode: 3 Operand: 8
+PC: 19 Opcode: 3 Operand: 7
+PC: 20 Opcode: 1 Operand: 7
+PC: 21 Opcode: 8 Operand: 5
+PC: 5 Opcode: 1 Operand: 6
+PC: 6 Opcode: 11 Operand: 22
+PC: 7 Opcode: 10 Operand: 22
+PC: 8 Opcode: 1 Operand: 7
+PC: 9 Opcode: 11 Operand: 16
+PC: 16 Opcode: 1 Operand: 7
+PC: 17 Opcode: 5 Operand: 2
+PC: 18 Opcode: 3 Operand: 8
+PC: 19 Opcode: 3 Operand: 7
+PC: 20 Opcode: 1 Operand: 7
+PC: 21 Opcode: 8 Operand: 5
+PC: 5 Opcode: 1 Operand: 6
+PC: 6 Opcode: 11 Operand: 22
+PC: 7 Opcode: 10 Operand: 22
+PC: 8 Opcode: 1 Operand: 7
+PC: 9 Opcode: 11 Operand: 16
+PC: 16 Opcode: 1 Operand: 7
+PC: 17 Opcode: 5 Operand: 2
+PC: 18 Opcode: 3 Operand: 8
+PC: 19 Opcode: 3 Operand: 7
+PC: 20 Opcode: 1 Operand: 7
+PC: 21 Opcode: 8 Operand: 5
+PC: 5 Opcode: 1 Operand: 6
+PC: 6 Opcode: 11 Operand: 22
+PC: 7 Opcode: 10 Operand: 22
+PC: 8 Opcode: 1 Operand: 7
+PC: 9 Opcode: 11 Operand: 16
+PC: 16 Opcode: 1 Operand: 7
+PC: 17 Opcode: 5 Operand: 2
+PC: 18 Opcode: 3 Operand: 8
+PC: 19 Opcode: 3 Operand: 7
+PC: 20 Opcode: 1 Operand: 7
+PC: 21 Opcode: 8 Operand: 5
+PC: 5 Opcode: 1 Operand: 6
+PC: 6 Opcode: 11 Operand: 22
+PC: 7 Opcode: 10 Operand: 22
+PC: 8 Opcode: 1 Operand: 7
+PC: 9 Opcode: 11 Operand: 16
+PC: 16 Opcode: 1 Operand: 7
+PC: 17 Opcode: 5 Operand: 2
+PC: 18 Opcode: 3 Operand: 8
+PC: 19 Opcode: 3 Operand: 7
+PC: 20 Opcode: 1 Operand: 7
+PC: 21 Opcode: 8 Operand: 5
+PC: 5 Opcode: 1 Operand: 6
+PC: 6 Opcode: 11 Operand: 22
+PC: 7 Opcode: 10 Operand: 22
+PC: 8 Opcode: 1 Operand: 7
+PC: 9 Opcode: 11 Operand: 16
+PC: 10 Opcode: 10 Operand: 16
+PC: 16 Opcode: 1 Operand: 7
+PC: 17 Opcode: 5 Operand: 2
+PC: 18 Opcode: 3 Operand: 8
+PC: 19 Opcode: 3 Operand: 7
+PC: 20 Opcode: 1 Operand: 7
+PC: 21 Opcode: 8 Operand: 5
+PC: 5 Opcode: 1 Operand: 6
+PC: 6 Opcode: 11 Operand: 22
+PC: 7 Opcode: 10 Operand: 22
+PC: 8 Opcode: 1 Operand: 7
+PC: 9 Opcode: 11 Operand: 16
+PC: 10 Opcode: 10 Operand: 16
+PC: 11 Opcode: 1 Operand: 6
+PC: 12 Opcode: 6 Operand: 2
+PC: 13 Opcode: 3 Operand: 9
+PC: 14 Opcode: 3 Operand: 6
+PC: 15 Opcode: 8 Operand: 20
+PC: 20 Opcode: 1 Operand: 7
+PC: 21 Opcode: 8 Operand: 5
+PC: 5 Opcode: 1 Operand: 6
+PC: 6 Opcode: 11 Operand: 22
+PC: 7 Opcode: 10 Operand: 22
+PC: 8 Opcode: 1 Operand: 7
+PC: 9 Opcode: 11 Operand: 16
+PC: 10 Opcode: 10 Operand: 16
+PC: 11 Opcode: 1 Operand: 6
+PC: 12 Opcode: 6 Operand: 2
+PC: 13 Opcode: 3 Operand: 9
+PC: 14 Opcode: 3 Operand: 6
+PC: 15 Opcode: 8 Operand: 20
+PC: 20 Opcode: 1 Operand: 7
+PC: 21 Opcode: 8 Operand: 5
+PC: 5 Opcode: 1 Operand: 6
+PC: 6 Opcode: 11 Operand: 22
+PC: 7 Opcode: 10 Operand: 22
+PC: 8 Opcode: 1 Operand: 7
+PC: 9 Opcode: 11 Operand: 16
+PC: 10 Opcode: 10 Operand: 16
+PC: 11 Opcode: 1 Operand: 6
+PC: 12 Opcode: 6 Operand: 2
+PC: 13 Opcode: 3 Operand: 9
+PC: 14 Opcode: 3 Operand: 6
+PC: 15 Opcode: 8 Operand: 20
+PC: 20 Opcode: 1 Operand: 7
+PC: 21 Opcode: 8 Operand: 5
+PC: 5 Opcode: 1 Operand: 6
+PC: 6 Opcode: 11 Operand: 22
+PC: 7 Opcode: 10 Operand: 22
+PC: 8 Opcode: 1 Operand: 7
+PC: 9 Opcode: 11 Operand: 16
+PC: 10 Opcode: 10 Operand: 16
+PC: 11 Opcode: 1 Operand: 6
+PC: 12 Opcode: 6 Operand: 2
+PC: 13 Opcode: 3 Operand: 9
+PC: 14 Opcode: 3 Operand: 6
+PC: 15 Opcode: 8 Operand: 20
+PC: 20 Opcode: 1 Operand: 7
+PC: 21 Opcode: 8 Operand: 5
+PC: 5 Opcode: 1 Operand: 6
+PC: 6 Opcode: 11 Operand: 22
+PC: 7 Opcode: 10 Operand: 22
+PC: 8 Opcode: 1 Operand: 7
+PC: 9 Opcode: 11 Operand: 16
+PC: 10 Opcode: 10 Operand: 16
+PC: 11 Opcode: 1 Operand: 6
+PC: 12 Opcode: 6 Operand: 2
+PC: 13 Opcode: 3 Operand: 9
+PC: 14 Opcode: 3 Operand: 6
+PC: 15 Opcode: 8 Operand: 20
+PC: 20 Opcode: 1 Operand: 7
+PC: 21 Opcode: 8 Operand: 5
+PC: 5 Opcode: 1 Operand: 6
+PC: 6 Opcode: 11 Operand: 22
+PC: 7 Opcode: 10 Operand: 22
+PC: 22 Opcode: 13 Operand: -1
+
+Final Memory Configuration
+RAM Memory Contents
+
+1   0
+2   1
+3   5
+4   10
+5   -10
+6   0
+7   1
+8   1
+9   0

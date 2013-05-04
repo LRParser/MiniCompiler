@@ -1,0 +1,7 @@
+    LDA 1
+    STA a
+    LDA 10
+    STA b
+    LDA 3
+    STA a
+    HLT

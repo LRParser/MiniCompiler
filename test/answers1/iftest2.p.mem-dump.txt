@@ -1,0 +1,8 @@
+1  0 ; Value: 0 Type: const Address: 1
+2  1 ; Value: 1 Type: const Address: 2
+3  2 ; Value: 2 Type: const Address: 3
+4  5 ; Value: 5 Type: const Address: 4
+5  0 ; Value: return Type: var Address: 5
+6  0 ; Value: i Type: var Address: 6
+7  0 ; Value: T0 Type: temp Address: 7
+8  0 ; Value: T1 Type: temp Address: 8

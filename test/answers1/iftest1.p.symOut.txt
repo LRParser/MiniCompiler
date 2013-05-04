@@ -1,0 +1,13 @@
+    LDA 5
+    STA i
+    LDA i
+    JMN L0
+    JMZ L0
+    LDA 1
+    STA return
+    LDA return
+    JMP L1
+L0: LDA 0
+    STA return
+    LDA return
+L1: HLT

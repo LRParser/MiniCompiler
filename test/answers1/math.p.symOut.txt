@@ -1,0 +1,6 @@
+    LDA 1
+    ADD 2
+    STA T0
+    LDA T0
+    STA x
+    HLT

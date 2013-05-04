@@ -1,0 +1,9 @@
+    LDA 1
+    ADD 5
+    STA T0
+    LDA T0
+    ADD 8
+    STA T1
+    LDA T1
+    STA x
+    HLT

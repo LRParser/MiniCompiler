@@ -1,0 +1,5 @@
+1  1 ; Value: 1 Type: const Address: 1
+2  5 ; Value: 5 Type: const Address: 2
+3  0 ; Value: 0 Type: const Address: 3
+4  0 ; Value: i Type: var Address: 4
+5  0 ; Value: return Type: var Address: 5

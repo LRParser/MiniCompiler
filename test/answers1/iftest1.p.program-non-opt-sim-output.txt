@@ -1,0 +1,27 @@
+Initial Memory Configuration
+RAM Memory Contents
+
+1   1
+2   5
+3   0
+4   0
+5   0
+PC: 1 Opcode: 1 Operand: 2
+PC: 2 Opcode: 3 Operand: 4
+PC: 3 Opcode: 1 Operand: 4
+PC: 4 Opcode: 11 Operand: 10
+PC: 5 Opcode: 10 Operand: 10
+PC: 6 Opcode: 1 Operand: 1
+PC: 7 Opcode: 3 Operand: 5
+PC: 8 Opcode: 1 Operand: 5
+PC: 9 Opcode: 8 Operand: 13
+PC: 13 Opcode: 13 Operand: -1
+
+Final Memory Configuration
+RAM Memory Contents
+
+1   1
+2   5
+3   0
+4   5
+5   1

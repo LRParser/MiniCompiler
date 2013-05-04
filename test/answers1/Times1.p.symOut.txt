@@ -1,0 +1,9 @@
+    LDA 1
+    MUL 5
+    STA T0
+    LDA T0
+    MUL 8
+    STA T1
+    LDA T1
+    STA x
+    HLT

@@ -1,0 +1,4 @@
+1  1 ; Value: 1 Type: const Address: 1
+2  2 ; Value: 2 Type: const Address: 2
+3  3 ; Value: 3 Type: const Address: 3
+4  0 ; Value: x Type: var Address: 4
