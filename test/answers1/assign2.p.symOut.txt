@@ -1,4 +1,4 @@
-    LDA 0
+    LDA 4
     STA f
     LDA f
     STA g

@@ -1,7 +1,7 @@
 Initial Memory Configuration
 RAM Memory Contents
 
-1   0
+1   4
 2   0
 3   0
 PC: 1 Opcode: 1 Operand: 1
@@ -12,6 +12,6 @@ PC: 4 Opcode: 13 Operand: -1
 Final Memory Configuration
 RAM Memory Contents
 
-1   0
-2   0
-3   0
+1   4
+2   4
+3   4
