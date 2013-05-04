@@ -990,7 +990,7 @@ class Program :
                         foldedConst = Number(instrMinus2.operand.value * instrMinus1.operand.value)
 
                     entry = SymbolTableUtils.createOrGetSymbolTableReference(foldedConst,foldedConst.value,CONST)
-                    insertionMap[i-2] = MachineCode(LD,foldedConst)
+                    insertionMap[i-2] = MachineCode(LD,foldedConst,instrMinus2.label)
                     linesToRemove.append(currentInstr)
                     linesToRemove.append(instrMinus1)
                     linesToRemove.append(instrMinus2)
