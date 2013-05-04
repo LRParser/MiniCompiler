@@ -388,7 +388,7 @@ class Ident( Expr ) :
     def translate( self, nt=None, ft=None ) :
         #check to see if Ident is in the symbol table
         log.debug("Entering translate method for Ident: %s", self)
-        entry = SymbolTableUtils.createOrGetSymbolTableReference(self,self.name,VAR)
+        entry = SymbolTableUtils.createOrGetSymbolTableReference(self.name,self.name,VAR)
         instructions = list()
         #instructions.append(MachineCode(LD,self.name))
 
