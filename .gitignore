@@ -5,7 +5,9 @@ parsetab.py
 TAGS
 release/
 linkedOut.txt
-memOut.txt
-optimizedOut.txt
 ram
+mem-dump-opt.txt
+mem-dump.txt
+program-non-opt.txt
+program-opt.txt
 symOut.txt
