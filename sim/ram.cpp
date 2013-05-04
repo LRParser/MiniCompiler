@@ -1,7 +1,7 @@
 // Implementation of RAM class
 //
 // g++ (Ubuntu 4.4.1-4ubuntu9) 4.4.1 on
-// Linux 2.6.31-23-generic 
+// Linux 2.6.31-23-generic
 //
 // Editor:  tabstop=2, cols=80
 //
@@ -70,7 +70,7 @@ void RAM::init()
 void RAM::init( string pInput, string mInput, int req_size ) {
 	// Initialize Memory
 	int addr, value, cnt=1;
-	
+
 	string buf ;
 
 	////   Initialize memory   //////////////////////
@@ -93,7 +93,7 @@ void RAM::init( string pInput, string mInput, int req_size ) {
 
 		// extend to requested size
 	if( req_size > memorySize() )
-		memorySize( req_size ) ; 
+		memorySize( req_size ) ;
 
 	////   Initialize program   //////////////////////
 
@@ -113,11 +113,11 @@ void RAM::init( string pInput, string mInput, int req_size ) {
 		}
 		else if( buf == "LDA" ) {
 			code = LDA;
-			pFile >> operand; 
-			getline( pFile, buf ); } 
+			pFile >> operand;
+			getline( pFile, buf ); }
 		else if( buf == "LDI" ) {
 			code = LDI;
-			pFile >> operand; 
+			pFile >> operand;
 			getline( pFile, buf ); }
 		else if( buf == "STA" ) {
 			code = STA;
@@ -125,19 +125,19 @@ void RAM::init( string pInput, string mInput, int req_size ) {
 			getline( pFile, buf ); }
 		else if( buf == "STI" ) {
 			code = STI;
-			pFile >> operand; 
+			pFile >> operand;
 			getline( pFile, buf ); }
 		else if( buf == "ADD" ) {
 			code = ADD;
-			pFile >> operand; 
+			pFile >> operand;
 			getline( pFile, buf ); }
 		else if( buf == "SUB" ) {
 			code = SUB;
-			pFile >> operand; 
+			pFile >> operand;
 			getline( pFile, buf ); }
 		else if( buf == "MUL" ) {
 			code = MUL;
-			pFile >> operand; 
+			pFile >> operand;
 			getline( pFile, buf ); }
 		else if( buf == "JMP" ) {
 			code = JMP;
@@ -170,13 +170,13 @@ void RAM::init( string pInput, string mInput, int req_size ) {
 
 		program.push_back( Instruction( code, operand )) ;
 
-	}	// while tokens 
+	}	// while tokens
 } // Init( f, f )
 
 // simulate execution of RAM with given program and memory configuration.
 // Notes:
 //    1. Program may not terminate (if HLT is not executed)
-//    2. Currently no error checking is performed.  Checks for valid program 
+//    2. Currently no error checking is performed.  Checks for valid program
 //       and memory addresses and illegal opcodes should be provided.
 void RAM::execute()
 {
@@ -189,6 +189,8 @@ void RAM::execute()
 
 	while (!halted) {
 		op = program[pc].opcode;
+
+		cout << "PC: " << pc << " Opcode: " << op << " Operand: " << program[pc].operand << endl;
 		switch (op) {
 		case LDA:
 			x = program[pc].operand;
@@ -283,8 +285,7 @@ void RAM::execute()
 void RAM::dump()
 {
 	cout << "RAM Memory Contents" << endl;
-	cout << endl;  
+	cout << endl;
 	for( int i=1; i<=memorySize(); i++ )
 		cout << i << "   " << memory[i] << endl;
 }
-
