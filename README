@@ -70,7 +70,7 @@ makefile			    ** Contains the following targets as defined in the requirements.
     LD , ADD and ST to a temporary variable might be replaced with just LD from an added row in the memory table which pre-computes the value of this
     addition at compile time. Currently addition, subtracting and multiplication of constants is supported via Constant folding optimization. This optimization
     improves (decreases) running time of the program, at the cost of a larger memory table and longer compile time in the optimization phase. Only 1 round of folding
-    is currently done and no attempts are made to implement further constant propagation optimizations or decrease memory footprint by removing constants or temporary address
+    is currently done and no attempts are made to implement further constant propagation optimizations or decrease memory footprint by removing constants
     locations that are unneeded due to the folding phase. The optimization is performed via the performConstantFolding method in the Program class of programext.py file
 
     ** End extra credit.
