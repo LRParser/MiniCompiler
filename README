@@ -60,7 +60,7 @@ makefile			    ** Contains the following targets as defined in the requirements.
     through all statements and finds the operand's address that was created in the symbol table. Linked RAL code can
     now be ran on the RAM simulator.
 
-TEST FILES - Will be explained in detail below:
+TEST FILES - Will be explained in detail below :
 ________________
 assign1.p       ** Used to test the assignment of constants to variables.
 assign2.p       ** Used to test the assignment of constants to variables, and variables to variables.
