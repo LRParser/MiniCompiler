@@ -50,7 +50,7 @@ view:
 ram:
 	@g++ $(BUILD_SIM) -o $(SIM)
 
-run: ram
+run:
 	@$(call run-simulator,$(NON_OPT_PROGRAM),$(NON_OPT_MEM_FILE))
 
 run-op:
