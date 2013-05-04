@@ -125,7 +125,7 @@ def get_compile_functions(program):
     instructions = program.translate()
     symOut = open('symOut.txt','w')
     for inst in instructions :
-      symOut.write(str(inst)+'\n')
+      symOut.write(inst.symbolicStr() + '\n')
     return instructions
 
   def optimize(instructions_input):
