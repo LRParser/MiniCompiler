@@ -50,10 +50,10 @@ view:
 ram:
 	@g++ $(BUILD_SIM) -o $(SIM)
 
-run:
+run: compile
 	@$(call run-simulator,$(NON_OPT_PROGRAM),$(NON_OPT_MEM_FILE))
 
-run-op:
+run-op: compile
 	@$(call run-simulator,$(OPT_PROGRAM),$(OPT_MEM_FILE))
 
 
@@ -92,7 +92,7 @@ clean:
 
 build : clean
 
-compile: clean
+compile: clean SIM
 	@$(PYTHON) $(INTERPRET)
 
 release: clean
