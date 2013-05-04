@@ -45,6 +45,8 @@ RELEASE_FILE=$(ASSIGNMENT).tar.gz
 # takes two arguments... progFile memFile
 run-simulator = $(SIM) $(1) $(2)
 
+view:
+	@more $(INTERPRET) $(PROGRAMEXT)
 ram:
 	@g++ $(BUILD_SIM) -o $(SIM)
 
