@@ -92,7 +92,7 @@ clean:
 
 build : clean
 
-compile: clean
+compile: clean SIM
 	@$(PYTHON) $(INTERPRET)
 
 release: clean

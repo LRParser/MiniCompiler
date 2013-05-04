@@ -1,0 +1,9 @@
+0: LDA 8
+1: SUB 5
+2: STA T0
+3: LDA T0
+4: SUB 1
+5: STA T1
+6: LDA T1
+7: STA x
+8: HLT

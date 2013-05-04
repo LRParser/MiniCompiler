@@ -5,6 +5,13 @@ Group #9 Assignment #3
 	Joseph Heenan
 ________________
 
+OVERVIEW: Assignment #3
+___________
+
+This project implements a compiler who's target language is the RAL instruction set run on the RAM
+simulator. This is accomplished by modifying the  mini language interpreter generate RAL instructions,
+optimize the instructions, and then link the instructions to memory addresses.
+
 This package contains all of the files for Assignment #3.
 
 =======
@@ -14,12 +21,12 @@ interpreterext.py		** Contains the grammar for the original mini language. Also 
                         ** p_program will call all of the methods required to translate, optimize and link the RAL
                         ** code to be used in the RAM simulator.
 
-                        ** Three text files will be generated as output.
-                        ** 1.) symOut.txt - Contains the RAL code prior to optimization and linking.
-                        ** 2.) program-out.txt - Contains the RAL code after linking is performed.
-                        ** 3.) program-opt-out.txt - Contains the RAL code after optimization and linking has been executed.
-                        ** 4.) memOut.txt - Breaks down the VARS, CONSTS and TEMP variables stored in memory and
-                        **     and displays their name, and memory address.
+                        ** These text files will be generated as output (both when calling python interpretext.py < myinputfile and via calling make compile < myinputfile)
+                        ** 1.) symOut.txt - Contains the symbolic RAL code prior to optimization and linking.
+                        ** 2.) program-non-opt.txt - Contains the RAL code after linking is performed (but before optimization)
+                        ** 3.) program-opt.txt - Contains the RAL code after optimization and linking has been executed.
+                        ** 4.) mem-dump.txt - Outputs the non-optimized memory table. Breaks down the VARS, CONSTS and TEMP variables stored in memory and and displays their name, and memory address.
+                        ** 5.) mem-dump-opt.txt - Output the optimized memory table. Used for simulation with RAM simultator
 
 programext.py			** Contains the implementation for the grammar along with all of the implementation for
                         ** generating the RAL code to be used in the RAM simulator.
@@ -56,6 +63,18 @@ makefile			    ** Contains the following targets as defined in the requirements.
     current is a LD (Load).  There is no need to Load the operand if it was just Stored because it is already located
     in the AC (Accumulator).
 
+    ** Extra credit
+
+    For extra credit, Constant Folding optimization is peformed. This step looks at symbolic (non-linked) machine code
+    and attempts to identify instructions performed using only compile-time constants, and pre-computes their values. In this way,
+    LD , ADD and ST to a temporary variable might be replaced with just LD from an added row in the memory table which pre-computes the value of this
+    addition at compile time. Currently addition, subtracting and multiplication of constants is supported via Constant folding optimization. This optimization
+    improves (decreases) running time of the program, at the cost of a larger memory table and longer compile time in the optimization phase. Only 1 round of folding
+    is currently done and no attempts are made to implement further constant propagation optimizations or decrease memory footprint by removing constants or temporary address
+    locations that are unneeded due to the folding phase. The optimization is performed via the performConstantFolding method in the Program class of programext.py file
+
+    ** End extra credit.
+
     Once the RAL code is optimized we must now link it to actual addresses.  This is done via the Linker which loops
     through all statements and finds the operand's address that was created in the symbol table. Linked RAL code can
     now be ran on the RAM simulator.
@@ -85,17 +104,14 @@ whileTest1.p    ** Used to test the While Statement
 
 README				** This file. Contains details out how to run files, build, test, etc.
 
-DESCRIPTION: Assignment #3, Part #1
-___________
-
-This project implements a compiler who's target language is the RAL instruction set run on the RAM
-simulator. This is accomplished by modifying the  mini language interpreter generate RAL instructions,
-optimize the instructions, and then link the instructions to memory addresses.
-
 RUNNING: Assignment #3, Part #1
 ___________
 
-Can be run via make run-part1 < myinputfile (where you substitute myinputfile for an appropriate mini language input file)
+Executing make run < myinputfile (where you substitute myinputfile for an appropriate mini language input file) will compile and run (but not optimize) myinputfile
+
+Executing make run-op < myinputfile (where you substitute myinputfile for an appropriate mini language input file) will compile, optimize and run myinputfile
+
+Other included targets are view, compile, view-trans, view-link, view-op and clean to supporting viewing all source, compile/link/optimize of input on stdin, viewing symbolic RAL, viewing linked RAL, viewing optimized RAL, and cleaning output file, respectively
 
 TESTING: Assignment #3, Part #1
 ___________

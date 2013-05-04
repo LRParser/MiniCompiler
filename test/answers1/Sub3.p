@@ -1,5 +1,5 @@
-0: LDA 1
-1: ADD 2
+0: LDA 5
+1: SUB 8
 2: STA T0
 3: LDA T0
 4: STA x

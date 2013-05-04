@@ -1,0 +1,7 @@
+0: LDA 1
+1: STA f
+2: LDA 2
+3: STA f
+4: LDA 1
+5: STA f
+6: HLT
