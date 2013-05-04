@@ -994,6 +994,11 @@ class Program :
                     linesToRemove.append(currentInstr)
                     linesToRemove.append(instrMinus1)
                     linesToRemove.append(instrMinus2)
+
+                    # Remove temp var from memory/symbol table
+
+                    del GLOBAL_SYMBOL_TABLE[currentInstr.operand]
+
                     log.debug("Found folding candidate")
 
         for i in linesToRemove :
