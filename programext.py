@@ -52,7 +52,7 @@ import logging
 
 logging.basicConfig(
     format = "%(levelname) -4s %(message)s",
-    level = logging.INFO
+    level = logging.DEBUG
 )
 
 log = logging.getLogger('programext')
@@ -966,13 +966,10 @@ class Program :
         '''Extra credit optimization recommended by TA; pre-computes the values at compile time where possible; decreases execution time at cost of memory footprint'''
         log.debug("Trying to perform folding")
 
-        insertionMap = dict()
-        linesToRemove = list()
         optimizedCode = list()
 
         log.debug("Pre-optimization length is: %d" % len(machineCode))
-
-        for i in range(len(machineCode)) :
+        for i in range(2, len(machineCode)) :
             # Try to find 3 instructions in form LDA CONST, ADD CONST, STA TEMP
             currentInstr = machineCode[i]
             instrMinus1 = machineCode[i-1]
@@ -990,10 +987,9 @@ class Program :
                         foldedConst = Number(instrMinus2.operand.value * instrMinus1.operand.value)
 
                     entry = SymbolTableUtils.createOrGetSymbolTableReference(foldedConst,foldedConst.value,CONST)
-                    insertionMap[i-2] = MachineCode(LD,foldedConst,instrMinus2.label)
-                    linesToRemove.append(currentInstr)
-                    linesToRemove.append(instrMinus1)
-                    linesToRemove.append(instrMinus2)
+                    machineCode[i-2] = MachineCode(LD, foldedConst, instrMinus2.label)
+                    machineCode[i-1] = NoOp()
+                    machineCode[i] = NoOp()
 
                     # Remove temp var from memory/symbol table
 
@@ -1001,14 +997,11 @@ class Program :
 
                     log.debug("Found folding candidate")
 
-        for i in linesToRemove :
-            log.debug("Removing %s" % i)
-            machineCode.remove(i)
+        for inst in machineCode :
+            if not isinstance(inst, NoOp) :
+                optimizedCode.append(inst)
 
-        for i in insertionMap.iterkeys() :
-            lineToAdd = insertionMap[i]
-            log.debug("Adding %s" % lineToAdd)
-            machineCode.insert(i,insertionMap[i])            
+        machineCode = optimizedCode
 
         log.debug("Post-optimization length is: %d" % len(machineCode))
 
