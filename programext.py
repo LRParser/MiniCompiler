@@ -1007,10 +1007,12 @@ class Program :
 
         log.debug("Post-optimization length is: %d" % len(machineCode))
 
+        return machineCode
+
     def optimize( self, machineCode ) :
         log.debug("Optimizing")
         optimizedCode = self.performPeepholeOptimization(machineCode)
-        self.performConstantFolding(machineCode)
+        optimizedCode = self.performConstantFolding(optimizedCode)
         return optimizedCode
 
     def flattenList( self, iterableList ) :
