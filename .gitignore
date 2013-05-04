@@ -11,3 +11,4 @@ mem-dump.txt
 program-non-opt.txt
 program-opt.txt
 symOut.txt
+test/output1/
