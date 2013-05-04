@@ -1,7 +1,0 @@
-0: LDA 1
-1: STA a
-2: LDA 10
-3: STA b
-4: LDA 3
-5: STA a
-6: HLT

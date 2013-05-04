@@ -949,7 +949,6 @@ class Program :
         optimizedCode = list()
 
         for i in range(len(machineCode)) :
-            print str(i) + ": " + str(machineCode[i])
             prevInstr = machineCode[i-1]
             currentInstr = machineCode[i]
             if(prevInstr.opcode == ST and currentInstr.opcode == LD and (prevInstr.operand == currentInstr.operand)) :

@@ -1,9 +1,0 @@
-0: LDA 1
-1: MUL 5
-2: STA T0
-3: LDA T0
-4: MUL 8
-5: STA T1
-6: LDA T1
-7: STA x
-8: HLT

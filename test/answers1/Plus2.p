@@ -1,6 +1,0 @@
-0: LDA 1
-1: ADD 5
-2: STA T0
-3: LDA T0
-4: STA x
-5: HLT
