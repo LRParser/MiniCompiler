@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 TOP ?= $(shell pwd)
 
 HOST=$(shell hostname)
@@ -104,9 +103,3 @@ release: clean
 	rm -rf $(ASSIGNMENT); \
 	mkdir $(TOP)/$(RELEASE_DIR); \
 	mv $(RELEASE_FILE) $(TOP)/$(RELEASE_DIR)
-=======
-CC=g++
-
-ramsim:
-	$(CC) -o ramsim main.cpp ram.cpp
->>>>>>> b38995248855c8006532dfa0ad39d9b26c6a7d82
