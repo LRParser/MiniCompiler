@@ -52,12 +52,14 @@ import logging
 
 logging.basicConfig(
     format = "%(levelname) -4s %(message)s",
-    level = logging.INFO
+    level = logging.DEBUG
 )
 
 log = logging.getLogger('programext')
 
 ####  CONSTANTS   ################
+
+returnAddr = 12
 
 # the variable name used to store a proc's return value
 returnSymbol = 'return'
@@ -96,7 +98,7 @@ class MachineCode(object):
 
     @property
     def is_jump(self):
-        if 'JM' in self.opcode:
+        if 'JM' in self.opcode or 'CAL' in self.opcode:
             return True
         else:
             return False
@@ -542,7 +544,11 @@ class FunCall( Expr ) :
         return ft[ self.name ].apply( nt, ft, self.argList )
 
     def translate( self, nt, ft ) :
-        raise Exception("Functions not supported by mini compiler")
+        jmpLabel = Label(self.name)
+        jmpCode = MachineCode(CAL,jmpLabel)
+        instructions = list()
+        instructions.append(jmpCode)
+        return (instructions, "return")
 
     def display( self, nt, ft, depth=0 ) :
         print "%sFunction Call: %s, args:" % (tabstop*depth, self.name)
@@ -572,22 +578,7 @@ class Stmt :
             'Stmt.display: virtual method.  Must be overridden.' )
 
 
-class AssignStmt( Stmt ) :
-    '''adds/modifies symbol in the current context'''
-
-    def __init__( self, name, rhs ) :
-        '''stores the symbol for the l-val, and the expressions which is the
-        rhs'''
-        self.name = name
-        self.rhs = rhs
-
-    def eval( self, nt, ft ) :
-        nt[ self.name ] = self.rhs.eval( nt, ft )
-
-    def display( self, nt, ft, depth=0 ) :
-        print "%sAssign: %s :=" % (tabstop*depth, self.name)
-        self.rhs.display( nt, ft, depth+1 )
-
+class NamedStmt( Stmt ) :
     def __str__( self ) :
         return str(self.name)
 
@@ -606,6 +597,23 @@ class AssignStmt( Stmt ) :
     def __hash__( self ) :
         return hash(self.name)
 
+
+class AssignStmt( NamedStmt ) :
+    '''adds/modifies symbol in the current context'''
+
+    def __init__( self, name, rhs ) :
+        '''stores the symbol for the l-val, and the expressions which is the
+        rhs'''
+        self.name = name
+        self.rhs = rhs
+
+    def eval( self, nt, ft ) :
+        nt[ self.name ] = self.rhs.eval( nt, ft )
+
+    def display( self, nt, ft, depth=0 ) :
+        print "%sAssign: %s :=" % (tabstop*depth, self.name)
+        self.rhs.display( nt, ft, depth+1 )
+
     def translate(self, nt, ft) :
         '''Produces (unlinked) machine code to load the locates of RHS via LD, and store into location of LHS via LD'''
         log.debug("Entering translate method for AssignStmt: %s" % self)
@@ -613,9 +621,9 @@ class AssignStmt( Stmt ) :
 
         # First, execute the code corresponding to the RHS
         (rhsCode, rhsStorageLocation) = self.rhs.translate(nt,ft)
+        log.debug("rhsStorageLocation is: "+str(rhsStorageLocation))
         for instr in rhsCode :
             instructions.append(instr)
-            # instructions.append(rhsCode)
         log.debug("RHS of AssignStmt translated")
 
         # The value computed by the RHS is now in the accumulator. First, ensure the Ident on LHS is in the
@@ -634,7 +642,7 @@ class AssignStmt( Stmt ) :
 
         return (instructions, self.name)
 
-class DefineStmt( Stmt ) :
+class DefineStmt( NamedStmt ) :
     '''Binds a proc object to a name'''
 
     def __init__( self, name, proc ) :
@@ -645,7 +653,23 @@ class DefineStmt( Stmt ) :
         ft[ self.name ] = self.proc
 
     def translate(self, nt, ft) :
-        raise Exception("Functions not supported for mini compiler")
+        instructions = list()
+        log.debug(self.name)
+        log.debug("Try to translate proc: "+str(self.proc))	
+        jmpLabel = Label(self.name)
+        instructions.append(NoOp(jmpLabel))
+        (rhsCode, rhsStorageLocation) = self.proc.translate(nt, ft)
+        for instr in rhsCode :
+            log.debug("Translated proc code: "+str(instr))
+            instructions.append(instr)
+        nextStmtLabel = LABEL_FACTORY.get_label()
+        instructions.append(NoOp(nextStmtLabel))
+        log.debug("RHS of DefineStmt translated")
+
+        entry = SymbolTableUtils.createOrGetSymbolTableReference(self,self.name,VAR)
+
+        return (instructions, self.name)
+
 
     def display( self, nt, ft, depth=0 ) :
         print "%sDEFINE %s :" % (tabstop*depth, self.name)
@@ -867,6 +891,18 @@ class Proc :
             print "Error:  no return value"
             sys.exit( 2 )
 
+    def translate( self, nt, ft ) :
+        # Currently supports only procedures of 0 arguments
+        instructions = list()
+        (rhsCode, rhsStorageLocation) = self.body.translate(nt, ft)
+
+        for instr in rhsCode :
+            instructions.append(instr)
+      
+
+        #instructions.append(MachineCode(JMI,returnAddr))          
+        return (instructions, rhsStorageLocation)
+
     def display( self, nt, ft, depth=0 ) :
         print "%sPROC %s :" % (tabstop*depth, str(self.parList))
         self.body.display( nt, ft, depth+1 )
@@ -914,6 +950,7 @@ class Program :
         for key in GLOBAL_SYMBOL_TABLE.iterkeys() :
             log.debug(key)
         for line in machineCode :
+            log.debug("Going to link: "+str(line))
             if(line.operand is None or line.is_jump) :
                 # No need to link the HLT instruction
                 continue
