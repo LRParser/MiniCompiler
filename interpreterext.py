@@ -154,17 +154,18 @@ def get_compile_functions(program):
 def p_program( p ) :
   'program : stmt_list'
 
-  mainIdent = "main"
-  mainArgs = None
-  mainProc = Proc(mainArgs,p[1])
-  defineStmt = DefineStmt(mainIdent,mainProc)
-  funCall = FunCall(mainIdent,mainArgs)
-  assignStmt = AssignStmt("returnVal",funCall)
-  stmts = StmtList()
-  stmts.insert(defineStmt)
-  stmts.insert(assignStmt)
-  P = Program(stmts)
-  #P = Program( p[1] )
+#  mainIdent = "main"
+#  mainArgs = [0]
+#  mainParams = ["n"]
+#  mainProc = Proc(mainParams,p[1])
+#  defineStmt = DefineStmt(mainIdent,mainProc)
+#  funCall = FunCall(mainIdent,mainArgs)
+#  assignStmt = AssignStmt("returnVal",funCall)
+#  stmts = StmtList()
+#  stmts.insert(defineStmt)
+#  stmts.insert(assignStmt)
+#  P = Program(stmts)
+  P = Program( p[1] )
   #P.display()
   #print 'Running Program'
   #P.eval()
@@ -270,8 +271,7 @@ def p_def( p ) :
 
 def p_param_list( p ) :
   '''param_list : IDENT COMMA param_list
-              | IDENT
-              | '''
+              | IDENT'''
   if len( p ) == 2 :  # single param => new list
     p[0] = [ p[1] ]
   else :  # we have a param_list, keep adding to front

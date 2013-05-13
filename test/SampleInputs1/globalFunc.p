@@ -2,5 +2,8 @@ define add
 proc( n )
   return := 1
 end;
-s := 1;
-s := add( 2 )
+define main
+proc( n )
+  return := add(2)
+end;
+s := main(0)

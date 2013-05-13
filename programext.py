@@ -59,8 +59,6 @@ log = logging.getLogger('programext')
 
 ####  CONSTANTS   ################
 
-returnAddr = 12
-
 # the variable name used to store a proc's return value
 returnSymbol = 'return'
 
@@ -87,7 +85,7 @@ TEMP = "temp"
 ###### ADDRESS CONSTANTS ############
 
 UNKNOWN = "?"
-
+SPADDR = "SPADDR"
 ######   CLASSES   ##################
 class MachineCode(object):
 
@@ -98,7 +96,7 @@ class MachineCode(object):
 
     @property
     def is_jump(self):
-        if 'JM' in self.opcode or 'CAL' in self.opcode:
+        if 'JM' in self.opcode or 'CAL' in self.opcode or isinstance(self.operand,Label):
             return True
         else:
             return False
@@ -260,6 +258,10 @@ class SymbolTableUtils :
 
         memLines = list()
 
+        # Add line for stack counter
+        memLines.append("%d %s ; %s" % (currentAddr, 0, "SP") )
+        currentAddr = currentAddr + 1
+
         for const in linkedSymbolTable.iterate(CONST) :
             memLines.append("%d  %s ; %s" % (currentAddr, const.value, const) )
             currentAddr = currentAddr + 1
@@ -281,7 +283,7 @@ class Linker(object) :
 
     @staticmethod
     def linkAddressesToSymbolTable(symbolTable) :
-        currentAddr = 1
+        currentAddr = 2
         for const in symbolTable.iterate(CONST) :
             const.address = currentAddr
             currentAddr = currentAddr + 1
@@ -544,11 +546,23 @@ class FunCall( Expr ) :
         return ft[ self.name ].apply( nt, ft, self.argList )
 
     def translate( self, nt, ft ) :
+
+        instructions = list()
+
+        midLabel = LABEL_FACTORY.get_label()
+        instructions.append(NoOp(midLabel))
         jmpLabel = Label(self.name)
         jmpCode = MachineCode(CAL,jmpLabel)
-        instructions = list()
+        
+        preLabel = LABEL_FACTORY.get_label()
+        instructions.append(MachineCode(LD,preLabel))
+        instructions.append(MachineCode(ST,SPADDR))
+        # Add CAL
         instructions.append(jmpCode)
-        return (instructions, "return")
+        # Add post label
+        #instructions.append(NoOp(LABEL_FACTORY.get_label()))
+        instructions.append(NoOp(preLabel))
+        return (instructions, returnSymbol)
 
     def display( self, nt, ft, depth=0 ) :
         print "%sFunction Call: %s, args:" % (tabstop*depth, self.name)
@@ -583,7 +597,7 @@ class NamedStmt( Stmt ) :
         return str(self.name)
 
     def __eq__( self, other ) :
-        if(isinstance(other,AssignStmt)) :
+        if(isinstance(other,AssignStmt) or isinstance(other,DefineStmt)) :
             return self.name == other.name
         elif(isinstance(other,str)) :
             return self.name == other
@@ -618,22 +632,29 @@ class AssignStmt( NamedStmt ) :
         '''Produces (unlinked) machine code to load the locates of RHS via LD, and store into location of LHS via LD'''
         log.debug("Entering translate method for AssignStmt: %s" % self)
         instructions = list()
+        # Store place to return to in the stack pointer
+        label = None
 
-        # First, execute the code corresponding to the RHS
+        # Translate the code corresponding to the RHS
         (rhsCode, rhsStorageLocation) = self.rhs.translate(nt,ft)
         log.debug("rhsStorageLocation is: "+str(rhsStorageLocation))
+        
+        # Store the address to return back to
         for instr in rhsCode :
             instructions.append(instr)
         log.debug("RHS of AssignStmt translated")
 
+        # Append return label
+        #if(isinstance(self.rhs,FunCall)) :
+        #    instructions.append(NoOp(label))
+        ldCode = MachineCode(LD, rhsStorageLocation)
+        instructions.append(ldCode)
         # The value computed by the RHS is now in the accumulator. First, ensure the Ident on LHS is in the
         # symbol table for later linking
         entry = SymbolTableUtils.createOrGetSymbolTableReference(self,self.name,VAR)
 
         # First, ensure the Ident is in the symbol table. Then, store the value in the accumulator in the
         # memory address pointed to by the Ident on the LHS
-        ldCode = MachineCode(LD, rhsStorageLocation)
-        instructions.append(ldCode)
         assignCode = MachineCode(ST, self.name)
         instructions.append(assignCode)
         log.debug("LHS of AssignStmt translated")
@@ -662,8 +683,8 @@ class DefineStmt( NamedStmt ) :
         for instr in rhsCode :
             log.debug("Translated proc code: "+str(instr))
             instructions.append(instr)
-        nextStmtLabel = LABEL_FACTORY.get_label()
-        instructions.append(NoOp(nextStmtLabel))
+        #nextStmtLabel = LABEL_FACTORY.get_label()
+        #instructions.append(NoOp(nextStmtLabel))
         log.debug("RHS of DefineStmt translated")
 
         entry = SymbolTableUtils.createOrGetSymbolTableReference(self,self.name,VAR)
@@ -954,8 +975,11 @@ class Program :
             if(line.operand is None or line.is_jump) :
                 # No need to link the HLT instruction
                 continue
-            linkedAddr = GLOBAL_SYMBOL_TABLE[line.operand].address
-            line.operand = linkedAddr
+            elif(line.operand == SPADDR) :
+                line.operand = 1
+            else :
+                linkedAddr = GLOBAL_SYMBOL_TABLE[line.operand].address
+                line.operand = linkedAddr
             log.debug("Linked operand %s to address: %s" % (line.operand, linkedAddr))
 
         for inst in machineCode:
