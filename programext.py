@@ -152,8 +152,28 @@ class LabelFactory ( object ) :
         self.count = self.count + 1
         return newLabel
 
-LABEL_FACTORY = LabelFactory()
+class FunctionLabelFactory ( object ) :
+    def __init__( self ) :
+        self.__labels = list()
+        self.count = 0
 
+    def get_start_label( self, name=None ):
+        prefix = "FS"
+        if(name is not None) :
+            prefix = prefix+"_"+name
+        newLabel = Label(prefix + str(self.count))
+        return newLabel
+
+    def get_stop_label( self, name=None ):
+        prefix = "FE"
+        if(name is not None) :
+            prefix = prefix+"_"+name
+        newLabel = Label(prefix + str(self.count))
+        self.count = self.count + 1
+        return newLabel
+
+LABEL_FACTORY = LabelFactory()
+FUNCTION_LABEL_FACTORY = FunctionLabelFactory()
 
 class TempVariable(Label):
 
@@ -549,19 +569,19 @@ class FunCall( Expr ) :
 
         instructions = list()
 
-        midLabel = LABEL_FACTORY.get_label()
-        instructions.append(NoOp(midLabel))
-        jmpLabel = Label(self.name)
-        jmpCode = MachineCode(CAL,jmpLabel)
+        #midLabel = FUNCTION_LABEL_FACTORY.get_start_label()
+        #instructions.append(NoOp(midLabel))
+        calLabel = Label(self.name)
+        calCode = MachineCode(CAL,calLabel)
         
-        preLabel = LABEL_FACTORY.get_label()
-        instructions.append(MachineCode(LD,preLabel))
+        postLabel = LABEL_FACTORY.get_label()
+        instructions.append(MachineCode(LD,postLabel))
         instructions.append(MachineCode(ST,SPADDR))
         # Add CAL
-        instructions.append(jmpCode)
+        instructions.append(calCode)
         # Add post label
         #instructions.append(NoOp(LABEL_FACTORY.get_label()))
-        instructions.append(NoOp(preLabel))
+        instructions.append(NoOp(postLabel))
         return (instructions, returnSymbol)
 
     def display( self, nt, ft, depth=0 ) :
@@ -677,8 +697,8 @@ class DefineStmt( NamedStmt ) :
         instructions = list()
         log.debug(self.name)
         log.debug("Try to translate proc: "+str(self.proc))	
-        jmpLabel = Label(self.name)
-        instructions.append(NoOp(jmpLabel))
+        #startLabel = FUNCTION_LABEL_FACTORY.get_start_label(self.name)
+        instructions.append(NoOp(Label(self.name)))
         (rhsCode, rhsStorageLocation) = self.proc.translate(nt, ft)
         for instr in rhsCode :
             log.debug("Translated proc code: "+str(instr))
@@ -686,7 +706,7 @@ class DefineStmt( NamedStmt ) :
         #nextStmtLabel = LABEL_FACTORY.get_label()
         #instructions.append(NoOp(nextStmtLabel))
         log.debug("RHS of DefineStmt translated")
-
+        #instructions.append(NoOp(FUNCTION_LABEL_FACTORY.get_stop_label(self.name)))
         entry = SymbolTableUtils.createOrGetSymbolTableReference(self,self.name,VAR)
 
         return (instructions, self.name)
@@ -921,7 +941,7 @@ class Proc :
             instructions.append(instr)
       
 
-        #instructions.append(MachineCode(JMI,returnAddr))          
+        instructions.append(MachineCode(JMI,SPADDR))          
         return (instructions, rhsStorageLocation)
 
     def display( self, nt, ft, depth=0 ) :
@@ -968,6 +988,9 @@ class Program :
 
     def link( self, machineCode ) :
         Linker.linkAddressesToSymbolTable(GLOBAL_SYMBOL_TABLE)
+
+        #sortedCode = 
+
         for key in GLOBAL_SYMBOL_TABLE.iterkeys() :
             log.debug(key)
         for line in machineCode :
