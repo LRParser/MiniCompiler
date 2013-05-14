@@ -48,7 +48,7 @@
 
 import sys
 import logging
-
+from linker import *
 
 logging.basicConfig(
     format = "%(levelname) -4s %(message)s",
@@ -65,8 +65,10 @@ returnSymbol = 'return'
 tabstop = '  ' # 2 spaces
 ######   OPCODES   ##################
 
-LD = 'LDA'
-ST = 'STA'
+LDA = 'LDA'
+STAFP = 'STA'
+LDOFP = 'LDO'
+STO = 'STO'
 ADD = 'ADD'
 SUB = 'SUB'
 MUL = 'MUL'
@@ -297,25 +299,6 @@ class SymbolTableUtils :
         log.debug("Memory table generated")
         return memLines
 
-### Linker Code ###
-
-class Linker(object) :
-
-    @staticmethod
-    def linkAddressesToSymbolTable(symbolTable) :
-        currentAddr = 2
-        for const in symbolTable.iterate(CONST) :
-            const.address = currentAddr
-            currentAddr = currentAddr + 1
-
-        for var in symbolTable.iterate(VAR) :
-            var.address = currentAddr
-            currentAddr = currentAddr + 1
-
-        for temp in symbolTable.iterate(TEMP) :
-            temp.address = currentAddr
-            currentAddr = currentAddr + 1
-
 class Expr(object) :
     '''Virtual base class for expressions in the language'''
 
@@ -375,8 +358,6 @@ class Number( Expr ) :
         entry = SymbolTableUtils.createOrGetSymbolTableReference(self,self.value,CONST)
 
         instructions = list()
-        #instructions.append(MachineCode(LD,self))
-        #instructions.append(MachineCode(ST,self))
 
         return (instructions, self)
 
@@ -414,7 +395,6 @@ class Ident( Expr ) :
         log.debug("Entering translate method for Ident: %s", self)
         entry = SymbolTableUtils.createOrGetSymbolTableReference(self.name,self.name,VAR)
         instructions = list()
-        #instructions.append(MachineCode(LD,self.name))
 
         return (instructions, self.name)
 
@@ -449,9 +429,9 @@ class Times( Expr ) :
 
         # load the result of lhs into the accumulator, then subtract the rhs
         resultStorageLocation = TEMP_VARIABLE_FACTORY.get_temp()
-        instructions.append(MachineCode(LD, lhsStorageLocation))
+        instructions.append(MachineCode(LDA, lhsStorageLocation))
         instructions.append(MachineCode(MUL, rhsStorageLocation))
-        instructions.append(MachineCode(ST, resultStorageLocation))
+        instructions.append(MachineCode(STA, resultStorageLocation))
 
         for val in instructions:
             log.debug("%s %s " % (val.opcode, val.operand))
@@ -493,9 +473,9 @@ class Plus( Expr ) :
 
         # load the result of lhs into the accumulator, then subtract the rhs
         resultStorageLocation = TEMP_VARIABLE_FACTORY.get_temp()
-        instructions.append(MachineCode(LD, lhsStorageLocation))
+        instructions.append(MachineCode(LDA, lhsStorageLocation))
         instructions.append(MachineCode(ADD, rhsStorageLocation))
-        instructions.append(MachineCode(ST, resultStorageLocation))
+        instructions.append(MachineCode(STA, resultStorageLocation))
 
         for val in instructions:
             log.debug("%s %s " % (val.opcode, val.operand))
@@ -537,9 +517,9 @@ class Minus( Expr ) :
 
         # load the result of lhs into the accumulator, then subtract the rhs
         resultStorageLocation = TEMP_VARIABLE_FACTORY.get_temp()
-        instructions.append(MachineCode(LD, lhsStorageLocation))
+        instructions.append(MachineCode(LDA, lhsStorageLocation))
         instructions.append(MachineCode(SUB, rhsStorageLocation))
-        instructions.append(MachineCode(ST, resultStorageLocation))
+        instructions.append(MachineCode(STA, resultStorageLocation))
 
         for val in instructions:
             log.debug("%s %s " % (val.opcode, val.operand))
@@ -575,8 +555,8 @@ class FunCall( Expr ) :
         calCode = MachineCode(CAL,calLabel)
         
         postLabel = LABEL_FACTORY.get_label()
-        instructions.append(MachineCode(LD,postLabel))
-        instructions.append(MachineCode(ST,SPADDR))
+        instructions.append(MachineCode(LDA,postLabel))
+        instructions.append(MachineCode(STA,SPADDR))
         # Add CAL
         instructions.append(calCode)
         # Add post label
@@ -667,7 +647,7 @@ class AssignStmt( NamedStmt ) :
         # Append return label
         #if(isinstance(self.rhs,FunCall)) :
         #    instructions.append(NoOp(label))
-        ldCode = MachineCode(LD, rhsStorageLocation)
+        ldCode = MachineCode(LDA, rhsStorageLocation)
         instructions.append(ldCode)
         # The value computed by the RHS is now in the accumulator. First, ensure the Ident on LHS is in the
         # symbol table for later linking
@@ -675,7 +655,7 @@ class AssignStmt( NamedStmt ) :
 
         # First, ensure the Ident is in the symbol table. Then, store the value in the accumulator in the
         # memory address pointed to by the Ident on the LHS
-        assignCode = MachineCode(ST, self.name)
+        assignCode = MachineCode(STA, self.name)
         instructions.append(assignCode)
         log.debug("LHS of AssignStmt translated")
 
@@ -744,7 +724,7 @@ class IfStmt( Stmt ) :
             instructions.append(instr)
 
         # load result of condConde into accumulator
-        instructions.append(MachineCode(LD, storageLocation))
+        instructions.append(MachineCode(LDA, storageLocation))
 
         # if result is false (<= 0), jump over trueBody
         falseBodyLabel = LABEL_FACTORY.get_label()
@@ -757,7 +737,7 @@ class IfStmt( Stmt ) :
             instructions.append(instr)
 
         # load the result of trueBody
-        instructions.append(MachineCode(LD, storageLocation))
+        instructions.append(MachineCode(LDA, storageLocation))
 
         # jump over the falseBody
         nextStatement = LABEL_FACTORY.get_label()
@@ -775,7 +755,7 @@ class IfStmt( Stmt ) :
                 instructions.append(instr)
 
         # load resulf of falseBody
-        instructions.append(MachineCode(LD, storageLocation))
+        instructions.append(MachineCode(LDA, storageLocation))
 
         # insert the nextStatement label
         instructions.append(NoOp(nextStatement))
@@ -825,11 +805,11 @@ class WhileStmt( Stmt ) :
                 log.debug(instr)
 
             # load the result of condBody
-            instructions.append(MachineCode(LD, storageLocation))
+            instructions.append(MachineCode(LDA, storageLocation))
 
         else:
             #point the label to the first instruction
-            instructions.append(MachineCode(LD, storageLocation,loopBeginLabel))
+            instructions.append(MachineCode(LDA, storageLocation,loopBeginLabel))
             log.debug("Loop begin: %s" % instructions[0])
 
         # if the result is false (<= 0), jump to loopEndLabel
@@ -843,7 +823,7 @@ class WhileStmt( Stmt ) :
             instructions.append(instr)
 
         # load the result of loopBody
-        instructions.append(MachineCode(LD, storageLocation))
+        instructions.append(MachineCode(LDA, storageLocation))
 
         # go back to the begining of the loop
         instructions.append(MachineCode(JMP, loopBeginLabel))
@@ -989,28 +969,7 @@ class Program :
     def link( self, machineCode ) :
         Linker.linkAddressesToSymbolTable(GLOBAL_SYMBOL_TABLE)
 
-        #sortedCode = 
-
-        for key in GLOBAL_SYMBOL_TABLE.iterkeys() :
-            log.debug(key)
-        for line in machineCode :
-            log.debug("Going to link: "+str(line))
-            if(line.operand is None or line.is_jump) :
-                # No need to link the HLT instruction
-                continue
-            elif(line.operand == SPADDR) :
-                line.operand = 1
-            else :
-                linkedAddr = GLOBAL_SYMBOL_TABLE[line.operand].address
-                line.operand = linkedAddr
-            log.debug("Linked operand %s to address: %s" % (line.operand, linkedAddr))
-
-        for inst in machineCode:
-            if (inst.is_jump):
-                for i, item in enumerate(machineCode):
-                    if inst.operand == item.label:
-                        log.debug("Found jump")
-                        inst.operand = i + 1
+        machineCode = Linker.linkSymbolicRALToRAL(GLOBAL_SYMBOL_TABLE, machineCode)
 
         return machineCode
 
@@ -1035,7 +994,7 @@ class Program :
         for i in range(len(machineCode)) :
             prevInstr = machineCode[i-1]
             currentInstr = machineCode[i]
-            if(prevInstr.opcode == ST and currentInstr.opcode == LD and (prevInstr.operand == currentInstr.operand)) :
+            if(prevInstr.opcode == STA and currentInstr.opcode == LDA and (prevInstr.operand == currentInstr.operand)) :
                 if (currentInstr.label is None):
                     log.debug("Removing redundant LD statement")
                 else:
@@ -1059,7 +1018,7 @@ class Program :
             instrMinus1 = machineCode[i-1]
             instrMinus2 = machineCode[i-2]
 
-            if(currentInstr.opcode == ST and (instrMinus1.opcode == ADD or instrMinus1.opcode == SUB or instrMinus1.opcode == MUL) and instrMinus2.opcode == LD) :
+            if(currentInstr.opcode == STA and (instrMinus1.opcode == ADD or instrMinus1.opcode == SUB or instrMinus1.opcode == MUL) and instrMinus2.opcode == LDA) :
                 if(isinstance(currentInstr.operand,TempVariable) and isinstance(instrMinus1.operand,Number) and isinstance(instrMinus2.operand,Number)) :
                     # Create a new constant that holds the computed result
                     foldedConst = None
@@ -1071,7 +1030,7 @@ class Program :
                         foldedConst = Number(instrMinus2.operand.value * instrMinus1.operand.value)
 
                     entry = SymbolTableUtils.createOrGetSymbolTableReference(foldedConst,foldedConst.value,CONST)
-                    machineCode[i-2] = MachineCode(LD, foldedConst, instrMinus2.label)
+                    machineCode[i-2] = MachineCode(LDA, foldedConst, instrMinus2.label)
                     machineCode[i-1] = NoOp()
                     machineCode[i] = NoOp()
 
