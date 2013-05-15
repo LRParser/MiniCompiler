@@ -76,7 +76,10 @@ JMN = 'JMN'
 JMZ = 'JMZ'
 CAL = 'CAL'
 HLT = 'HLT'
-
+LDA = 'LDA'
+STA = 'STA'
+LDI = 'LDI'
+STI = 'STI'
 ######   SYMBOL TABLE ENTRY TYPE#####
 CONST = "const"
 VAR = "var"
@@ -85,8 +88,12 @@ TEMP = "temp"
 ###### ADDRESS CONSTANTS ############
 
 UNKNOWN = "?"
-
+SPADDR = "1"
+FPADDR = '2'
+FPBADDR = '3'
+TEMP_REG = '4'
 ######   CLASSES   ##################
+
 class MachineCode(object):
 
     def __init__(self, opcode=None, operand=None, label=None):
@@ -183,6 +190,151 @@ class TempVariableFactory(object):
         return temp
 
 TEMP_VARIABLE_FACTORY = TempVariableFactory()
+
+class ActivationRecord(object):
+
+    def __init__(self):
+        self.rel_mem_addr = 0
+        self.temp_factory = TempVariableFactory()
+
+        self.on_stack = dict()
+
+    def __inc(self):
+        self.rel_mem_addr += 1
+
+    def get_size(self):
+        '''Get the size of the activation record.  Useful for determing where
+        the SP and FP should go
+        '''
+        return self.rel_mem_addr + 1
+
+    def store_parameters(self, previousAR, parameterList):
+        '''Generates the machine code to store the parameters from the previous
+        Activation Record
+        '''
+
+        if not parameterList:
+            #no parameters
+            return None
+        else:
+            instructions = list()
+
+            make_inst = self.__make_inst_list(instructions)
+            prev_make_inst = previousAR.__make_inst_list(instructions)
+
+            for param in parameterList:
+                #Load from the previous AR
+                instructions.extend(previousAR.load_stack_var(param))
+
+                #create space on the stack
+                self.__alloc_param(param)
+
+                #and store the new param
+                instructions.exend(self.set_stack_var(param))
+
+
+
+    def store_prev_fp(self):
+        '''Generate the RAL code to store the previous FP
+        '''
+        #create space for the return addr
+        self.__alloc_param("prev_fp")
+
+        instructions = list()
+
+        make_inst = self.__make_inst_list(instructions)
+
+        #load previous FP
+        make_inst(LDA, FPADDR)
+
+        #Store it
+        return instructions.extend(self.set_stack_var("prev_fp"))
+
+
+    def load_prev_fp(self):
+        "Return RAL code to load the previous FP into the ACC"
+        return self.load_stack_var("prev_fp")
+
+
+
+    def alloc_temp(self):
+        "Alloc a temporary and return a string representing the temp"
+
+        temp = self.temp_factory.get_temp()
+
+        #Store the temp variable and it's location
+        self.__alloc_param(temp)
+
+        return temp
+
+    def __alloc_param(self, param):
+        "alloc space on the stack for a param"
+        self.on_stack[param] = self.rel_mem_addr
+
+        self.__inc()
+
+    def __get_offset(self, var):
+        return self.on_stack[var]
+
+
+    def __assert_var(self, var):
+        assert (var in self.on_stack), "Stack var: %s not found!" % var
+
+    def load_stack_var(self, var):
+        "Generate the machine code to load the var from the stack into the ACC"
+
+        self.__assert_var(var)
+
+        make_inst = self.__make_inst_list(list())
+
+        make_inst(LDA, FPADDR)
+        make_inst(SUB, self.__get_offset(var))
+        make_inst(STA, FPBADDR)
+        return make_inst(LDI, FPBADDR)
+
+    def set_stack_var(self, var):
+        '''Generates the machine code to store a stack var.  Assumes the value to
+        set is in the ACC'''
+
+        self.__assert_var(var)
+
+        make_inst = self.__make_inst_list(list())
+
+        #first save of the value to set
+        make_inst(STA, TEMP_REG)
+        #Look up the var, but first get the FP
+        make_inst(LDA, FPADDR)
+        #calc offset
+        make_inst(SUB, self.__get_offset(var))
+        #store offset in FPBADDR
+        make_inst(STA, FPBADDR)
+        #now load back the value into the ACC
+        make_inst(LDA, TEMP_REG)
+        #now store that into the value FP points to
+        return make_inst(STI, FPBADDR)
+
+    def store_return(self):
+        "Assumes return is in ACC"
+        self.__alloc_param("return")
+
+        return self.set_stack_var("return")
+
+    def load_return(self):
+        return self.load_stack_var("return")
+
+    def __make_inst_list(self, the_list):
+        '''Return a function that takes machine code operators and operands and
+        appends them to a list, which is a lexical closure.
+
+        Basically, I was tired of typing MachineCode(blah, blah) each time ;)
+        '''
+        def machine_code_append(code, operand):
+            the_list.append(MachineCode(code, operand))
+            return the_list
+
+        return machine_code_append
+
+
 
 
 class NoOp(MachineCode):
