@@ -1,5 +1,5 @@
-from programext import *
-
+import programext
+import interpreterext
 class Linker(object) :
 
     @staticmethod
@@ -17,13 +17,37 @@ class Linker(object) :
             temp.address = currentAddr
             currentAddr = currentAddr + 1
 
+    @staticmethod
+    def indexOfLDOFP(machineCode) :
+        i = 0
+        for line in machineCode :
+            if(line.operand == LDOFP) :
+                return i
+            else :
+                return -1
+
+    @staticmethod
+    def containsLDOFP(machineCode) :
+        idx = Linker.indexOfLDOFP(machineCode)
+        while(idx != -1) :
+            log.debug("Index at: "+str(idx))        
+
+    @staticmethod
+    def translateLDOFP(machineCode) :
+        while(Linker.containsLDOFP(machineCode)) :
+           log.debug("Translation needed") 
+
 
     @staticmethod
     def linkSymbolicRALToRAL(symbolTable, machineCode) :
         for key in symbolTable.iterkeys() :
             log.debug(key)
+
+        Linker.translateLDOFP(machineCode)
+
         for line in machineCode :
             log.debug("Going to link: "+str(line))
+
             if(line.operand is None or line.is_jump) :
                 # No need to link the HLT instruction
                 continue

@@ -48,7 +48,6 @@
 
 import sys
 import logging
-from linker import *
 
 logging.basicConfig(
     format = "%(levelname) -4s %(message)s",
@@ -66,9 +65,11 @@ tabstop = '  ' # 2 spaces
 ######   OPCODES   ##################
 
 LDA = 'LDA'
-STAFP = 'STA'
-LDOFP = 'LDO'
-STO = 'STO'
+STA = 'STA'
+LDOFP = 'LDOFP'
+STOFP = 'STOFP'
+LDI = 'LDI'
+STI = 'STI'
 ADD = 'ADD'
 SUB = 'SUB'
 MUL = 'MUL'
@@ -88,6 +89,9 @@ TEMP = "temp"
 
 UNKNOWN = "?"
 SPADDR = "SPADDR"
+FPADDR = "FBADDR"
+FPBADDR = "FPBADDR"
+
 ######   CLASSES   ##################
 class MachineCode(object):
 
@@ -298,6 +302,86 @@ class SymbolTableUtils :
 
         log.debug("Memory table generated")
         return memLines
+
+class Linker(object) :
+
+    @staticmethod
+    def linkAddressesToSymbolTable(symbolTable) :
+        currentAddr = 4 # Because SP, FP, and FPB have addresses of 1,2,3, we start at 4
+        for const in symbolTable.iterate(CONST) :
+            const.address = currentAddr
+            currentAddr = currentAddr + 1
+
+        for var in symbolTable.iterate(VAR) :
+            var.address = currentAddr
+            currentAddr = currentAddr + 1
+
+        for temp in symbolTable.iterate(TEMP) :
+            temp.address = currentAddr
+            currentAddr = currentAddr + 1
+
+    @staticmethod
+    def indexOfLDOFP(machineCode) :
+        i = 0
+        for line in machineCode :
+            if(line.opcode == LDOFP) :
+                return i
+            else :
+                i = i + 1
+        return -1
+
+    @staticmethod
+    def translateLDOFP(machineCode) :
+        idx = Linker.indexOfLDOFP(machineCode)
+        while(idx != -1) :
+            log.debug("Found LDOFP at: "+str(idx))
+            machineCode.remove(machineCode[idx])
+            machineCode.insert(idx,MachineCode(LDA,FPBADDR))
+            num1 = Number(1)
+            SymbolTableUtils.createOrGetSymbolTableReference(num1,num1.value,CONST)
+            machineCode.insert(idx+1,MachineCode(ADD,num1))
+            machineCode.insert(idx+2,MachineCode(STA,FPBADDR))
+            machineCode.insert(idx+3,MachineCode(LDI,FPBADDR))
+            
+            # Loop again if other LDOFP instructions remain
+            idx = Linker.indexOfLDOFP(machineCode)
+            log.debug("Index at: "+str(idx))
+
+    @staticmethod
+    def linkSymbolicRALToRAL(symbolTable, machineCode) :
+        for key in symbolTable.iterkeys() :
+            log.debug(key)
+
+        # Translate any LDOFP pseudo-instructions
+        Linker.translateLDOFP(machineCode)
+        Linker.linkAddressesToSymbolTable(GLOBAL_SYMBOL_TABLE)
+
+        for line in machineCode :
+            log.debug("Going to link: "+str(line))
+
+            if(line.operand is None or line.is_jump) :
+                # No need to link the HLT instruction
+                continue
+            elif(line.operand == SPADDR) :
+                line.operand = 1
+            elif(line.operand == FPADDR) :
+                line.operand = 2
+            elif(line.operand == FPBADDR) :
+                line.operand = 3
+            else :
+                linkedAddr = symbolTable[line.operand].address
+                line.operand = linkedAddr
+                log.debug("Linked operand %s to address: %s" % (line.operand, linkedAddr))
+
+        for inst in machineCode:
+            if (inst.is_jump):
+                for i, item in enumerate(machineCode):
+                    if inst.operand == item.label:
+                        log.debug("Found jump")
+                        inst.operand = i + 1
+
+        return machineCode
+
 
 class Expr(object) :
     '''Virtual base class for expressions in the language'''
