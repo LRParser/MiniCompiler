@@ -265,6 +265,8 @@ void RAM::execute()
 				//  that it points to the *last* location in the current (new)
 				//  frame, and that the return address is stored there.
 			x = program[pc].operand;
+            cout << "SP is: "+SP << endl;
+            cout << "memory[SP] is: " << memory[SP] << endl;
 			memory[ memory[ SP ]] = pc+1 ;	// set the return address
 			pc = x ;	// jump to the function
 			break ;

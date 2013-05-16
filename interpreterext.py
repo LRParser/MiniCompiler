@@ -154,18 +154,36 @@ def get_compile_functions(program):
 def p_program( p ) :
   'program : stmt_list'
 
-#  mainIdent = "main"
-#  mainArgs = [0]
-#  mainParams = ["n"]
-#  mainProc = Proc(mainParams,p[1])
-#  defineStmt = DefineStmt(mainIdent,mainProc)
-#  funCall = FunCall(mainIdent,mainArgs)
-#  assignStmt = AssignStmt("returnVal",funCall)
-#  stmts = StmtList()
-#  stmts.insert(defineStmt)
-#  stmts.insert(assignStmt)
-#  P = Program(stmts)
-  P = Program( p[1] )
+  mainIdent = "main"
+  mainArgs = [0]
+  mainParams = ["n"]
+  returnStmt = AssignStmt("return",Number(0))
+
+  defineStmts = StmtList()
+  otherStmts = StmtList()
+
+  for stmt in p[1].sl :
+    if(isinstance(stmt,DefineStmt)) :
+      defineStmts.insert(stmt)
+    else :    
+      otherStmts.append(stmt)
+
+  otherStmts.append(returnStmt)
+
+  mainProc = Proc(mainParams,otherStmts)
+  defineMainStmt = DefineStmt(mainIdent,mainProc)
+  defineStmts.append(defineMainStmt)
+
+  mainFunCall = FunCall(mainIdent,mainArgs)
+  assignStmt = AssignStmt("return",mainFunCall)
+  #otherStmts.insert(assignStmt) # Call main as 1st thing
+
+  allStmts = StmtList()
+  allStmts.insert(defineStmts)
+  allStmts.insert(assignStmt)
+#  allStmts.insert(otherStmts)
+  P = Program(allStmts)
+#  P = Program( p[1] )
   #P.display()
   #print 'Running Program'
   #P.eval()

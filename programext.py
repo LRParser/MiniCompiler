@@ -51,11 +51,13 @@ import logging
 
 logging.basicConfig(
     format = "%(levelname) -4s %(message)s",
-    level = logging.DEBUG
-)
+    level = logging.DEBUG)
+soh = logging.StreamHandler(sys.stdout)
+soh.setLevel(logging.DEBUG)
+
 
 log = logging.getLogger('programext')
-
+log.addHandler(soh)
 ####  CONSTANTS   ################
 
 # the variable name used to store a proc's return value
@@ -147,6 +149,8 @@ class Label(object):
     def __hash__(self) :
         return hash(self.label)
 
+    def __contains__(self,string) :
+        return string in self.label
 
 class LabelFactory ( object ) :
     def __init__( self ) :
@@ -161,21 +165,20 @@ class LabelFactory ( object ) :
 class FunctionLabelFactory ( object ) :
     def __init__( self ) :
         self.__labels = list()
-        self.count = 0
 
     def get_start_label( self, name=None ):
         prefix = "FS"
         if(name is not None) :
             prefix = prefix+"_"+name
-        newLabel = Label(prefix + str(self.count))
+        log.debug("Got start label for: "+str(prefix))
+        newLabel = Label(prefix)
         return newLabel
 
     def get_stop_label( self, name=None ):
         prefix = "FE"
         if(name is not None) :
             prefix = prefix+"_"+name
-        newLabel = Label(prefix + str(self.count))
-        self.count = self.count + 1
+        newLabel = Label(prefix)
         return newLabel
 
 LABEL_FACTORY = LabelFactory()
@@ -277,7 +280,7 @@ class SymbolTableUtils :
         '''Takes linked machine code and generates a memory table that already contains values of constants'''
 
         log.debug("Generating memory table")
-        currentAddr = 1
+        currentAddr = 4
 
         # TODO: Refactor to use a lambda function to iterate by address
         # Except for constants, we we initialize all values to 0
@@ -331,6 +334,26 @@ class Linker(object) :
         return -1
 
     @staticmethod
+    def indexOfFuncStartLabel(machineCode) :
+        i = 0
+        for line in machineCode :
+            if(line.label is not None and line.label.__contains__("FS")) :
+                return i
+            else :
+                i = i + 1
+        return -1
+
+    @staticmethod
+    def indexOfFuncEndLabel(machineCode) :
+        i = 0
+        for line in machineCode :
+            if(line.label is not None and line.label.__contains__("FE")) :
+                return i
+            else :
+                i = i + 1
+        return -1
+
+    @staticmethod
     def translateLDOFP(machineCode) :
         idx = Linker.indexOfLDOFP(machineCode)
         while(idx != -1) :
@@ -348,13 +371,45 @@ class Linker(object) :
             log.debug("Index at: "+str(idx))
 
     @staticmethod
+    def moveFunctionsToEnd(machineCode) :
+        idx = Linker.indexOfFuncStartLabel(machineCode)
+        finalElem = machineCode[-1]
+        movedStartingLines = list()
+        while(idx != -1 and machineCode[idx] not in movedStartingLines) :
+            endIdx = Linker.indexOfFuncEndLabel(machineCode)
+            spliceSection = machineCode[idx:endIdx+1]
+            movedStartingLines.append(machineCode[idx])
+            log.debug("Moved to end lines from: "+str(idx)+" to: "+str(endIdx))
+            # Add to end
+            for line in spliceSection :
+                log.debug("Move to end line: "+str(line))
+                machineCode.append(line)
+            del machineCode[idx:endIdx+1]
+            
+            for line in machineCode :
+                log.debug("Remaining line: "+str(line))
+
+            #delStartIdx = idx
+            #while(delStartIdx < endIdx + 1) :
+            #    log.debug("Remove line: "+str(machineCode[delStartIdx]))
+            #    del machineCode[delStartIdx]
+            #    delStartIdx = delStartIdx + 1
+            idx = Linker.indexOfFuncStartLabel(machineCode)
+
+    @staticmethod
     def linkSymbolicRALToRAL(symbolTable, machineCode) :
         for key in symbolTable.iterkeys() :
-            log.debug(key)
+            log.debug("Symbol table has key: "+str(key))
+
+        for startLine in machineCode :
+            log.debug("Prior to linking, line: "+startLine.symbolicStr())
 
         # Translate any LDOFP pseudo-instructions
         Linker.translateLDOFP(machineCode)
+        Linker.moveFunctionsToEnd(machineCode)
+        
         Linker.linkAddressesToSymbolTable(GLOBAL_SYMBOL_TABLE)
+
 
         for line in machineCode :
             log.debug("Going to link: "+str(line))
@@ -638,14 +693,14 @@ class FunCall( Expr ) :
         calLabel = Label(self.name)
         calCode = MachineCode(CAL,calLabel)
         
-        postLabel = LABEL_FACTORY.get_label()
-        instructions.append(MachineCode(LDA,postLabel))
+        #postLabel = LABEL_FACTORY.get_label()
+        #instructions.append(MachineCode(LDA,postLabel))
         instructions.append(MachineCode(STA,SPADDR))
         # Add CAL
         instructions.append(calCode)
         # Add post label
         #instructions.append(NoOp(LABEL_FACTORY.get_label()))
-        instructions.append(NoOp(postLabel))
+        #instructions.append(NoOp(postLabel))
         return (instructions, returnSymbol)
 
     def display( self, nt, ft, depth=0 ) :
@@ -761,19 +816,20 @@ class DefineStmt( NamedStmt ) :
         instructions = list()
         log.debug(self.name)
         log.debug("Try to translate proc: "+str(self.proc))	
-        #startLabel = FUNCTION_LABEL_FACTORY.get_start_label(self.name)
-        instructions.append(NoOp(Label(self.name)))
+        startLabel = FUNCTION_LABEL_FACTORY.get_start_label(self.name)
+        instructions.append(NoOp(Label(startLabel)))
         (rhsCode, rhsStorageLocation) = self.proc.translate(nt, ft)
         for instr in rhsCode :
             log.debug("Translated proc code: "+str(instr))
             instructions.append(instr)
         #nextStmtLabel = LABEL_FACTORY.get_label()
         #instructions.append(NoOp(nextStmtLabel))
-        log.debug("RHS of DefineStmt translated")
-        #instructions.append(NoOp(FUNCTION_LABEL_FACTORY.get_stop_label(self.name)))
-        entry = SymbolTableUtils.createOrGetSymbolTableReference(self,self.name,VAR)
+        log.debug("RHS of DefineStmt for: "+self.name+" translated")
+        stopLabel = FUNCTION_LABEL_FACTORY.get_stop_label(self.name)
+        instructions.append(NoOp(stopLabel))
+        entry = SymbolTableUtils.createOrGetSymbolTableReference("return","return",VAR)
 
-        return (instructions, self.name)
+        return (instructions, stopLabel)
 
 
     def display( self, nt, ft, depth=0 ) :
@@ -934,6 +990,9 @@ class StmtList :
     def insert( self, stmt ) :
         self.sl.insert( 0, stmt )
 
+    def append( self, stmt ) :
+        self.sl.append(stmt)
+
     def eval( self, nt, ft ) :
         for s in self.sl :
             s.eval( nt, ft )
@@ -1042,7 +1101,13 @@ class Program :
 
         flattenedStmtCode.append(MachineCode(HLT))
 
+        log.debug("Length prior to removing NoOps: "+str(len(flattenedStmtCode)))
+
+        for line in flattenedStmtCode :
+            log.debug(line.symbolicStr())
+
         flattenedStmtCode = self.remove_no_ops(flattenedStmtCode)
+        log.debug("Length after to removing NoOps: "+str(len(flattenedStmtCode)))
 
         # Append a HLT instruction
 
@@ -1063,7 +1128,7 @@ class Program :
 
     def compile( self ) :
         machineCode = self.translate()
-        machineCode = self.optimize(machineCode)
+        #machineCode = self.optimize(machineCode)
         machineCode = self.link(machineCode)
         # Print memory table
 
