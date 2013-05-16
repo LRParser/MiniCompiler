@@ -566,12 +566,12 @@ class Times( Expr ) :
         instructions = list()
 
         # Get the Left Hand Side.
-        (lhsCode, lhsStorageLocation) = self.lhs.translate(nt,ft,ar)
+        (lhsCode, lhsStorageLocation, lhsActivationRecord) = self.lhs.translate(nt,ft,ar)
         for instr in lhsCode :
             instructions.append(instr)
 
         # Get the Right Hand Side.
-        (rhsCode, rhsStorageLocation) = self.rhs.translate(nt,ft,ar)
+        (rhsCode, rhsStorageLocation, rhsActivationRecord) = self.rhs.translate(nt,ft,ar)
         for instr in rhsCode :
             instructions.append(instr)
 
@@ -610,12 +610,12 @@ class Plus( Expr ) :
         instructions = list()
 
         # Get the Left Hand Side.
-        (lhsCode, lhsStorageLocation) = self.lhs.translate(nt,ft,ar)
+        (lhsCode, lhsStorageLocation, lhsActivationRecord) = self.lhs.translate(nt,ft,ar)
         for instr in lhsCode :
             instructions.append(instr)
 
         # Get the Right Hand Side.
-        (rhsCode, rhsStorageLocation) = self.rhs.translate(nt,ft,ar)
+        (rhsCode, rhsStorageLocation, rhsActivationRecord) = self.rhs.translate(nt,ft,ar)
         for instr in rhsCode :
             instructions.append(instr)
 
@@ -654,12 +654,12 @@ class Minus( Expr ) :
         instructions = list()
 
         # Get the Left Hand Side.
-        (lhsCode, lhsStorageLocation) = self.lhs.translate(nt,ft,ar)
+        (lhsCode, lhsStorageLocation, lhsActivationRecord) = self.lhs.translate(nt,ft,ar)
         for instr in lhsCode :
             instructions.append(instr)
 
         # Get the Right Hand Side.
-        (rhsCode, rhsStorageLocation) = self.rhs.translate(nt,ft,ar)
+        (rhsCode, rhsStorageLocation, rhsActivationRecord) = self.rhs.translate(nt,ft,ar)
         for instr in rhsCode :
             instructions.append(instr)
 
@@ -764,7 +764,7 @@ class AssignStmt( Stmt ) :
         instructions = list()
 
         # First, execute the code corresponding to the RHS
-        (rhsCode, rhsStorageLocation) = self.rhs.translate(nt,ft,ar)
+        (rhsCode, rhsStorageLocation, rhsActivationRecord) = self.rhs.translate(nt,ft,ar)
         for instr in rhsCode :
             instructions.append(instr)
             # instructions.append(rhsCode)
@@ -826,7 +826,7 @@ class IfStmt( Stmt ) :
         instructions = list()
 
         # translate the conditional expression
-        (condCode, storageLocation) = self.cond.translate( nt, ft, ar)
+        (condCode, storageLocation, condActivationRecord) = self.cond.translate( nt, ft, ar)
         for instr in condCode :
             instructions.append(instr)
 
@@ -839,7 +839,7 @@ class IfStmt( Stmt ) :
         instructions.append(MachineCode(JMZ, falseBodyLabel))
 
         # translate the trueBody
-        (trueBody, storageLocation) = self.tBody.translate(nt, ft, ar)
+        (trueBody, storageLocation, trueBodyActivationRecord) = self.tBody.translate(nt, ft, ar)
         for instr in trueBody :
             instructions.append(instr)
 
@@ -851,7 +851,7 @@ class IfStmt( Stmt ) :
         instructions.append(MachineCode(JMP, nextStatement))
 
         # translate the falseBody
-        (falseBody, storageLocation) = self.fBody.translate(nt, ft, ar)
+        (falseBody, storageLocation, falseBodyActivationRecord) = self.fBody.translate(nt, ft, ar)
         if not falseBody:
             #insert NOOP
             instructions.append(NoOp(falseBodyLabel))
@@ -897,7 +897,7 @@ class WhileStmt( Stmt ) :
         loopBeginLabel = LABEL_FACTORY.get_label()
 
         # translate the body of the conditional
-        (condBody, storageLocation) = self.cond.translate(nt, ft, ar)
+        (condBody, storageLocation, condActivationRecord) = self.cond.translate(nt, ft, ar)
 
         log.debug("Condition returned %s storage: %s" % (condBody, storageLocation))
 
@@ -925,7 +925,7 @@ class WhileStmt( Stmt ) :
         instructions.append(MachineCode(JMZ, loopEndLabel))
 
         # translate the loopBody
-        (loopBody, storageLocation) = self.body.translate(nt, ft, ar)
+        (loopBody, storageLocation, loopBodyActivationRecord) = self.body.translate(nt, ft, ar)
         for instr in loopBody :
             instructions.append(instr)
 
@@ -965,7 +965,7 @@ class StmtList :
 
         instructions = list()
         for s in self.sl :
-            (s.instructions, s.storageLocation) = s.translate( nt, ft, ar)
+            (s.instructions, s.storageLocation, activationRecord) = s.translate( nt, ft, ar)
             lastStorageLocation = s.storageLocation
             for instr in s.instructions :
                 instructions.append(instr)
@@ -1049,7 +1049,7 @@ class Program :
 
     def translate( self ) :
         ar = ActivationRecord()
-        nestedStmtCode, lastStorageLocation = self.stmtList.translate(self.nameTable, self.funcTable, ar)
+        nestedStmtCode, lastStorageLocation, activationRecord = self.stmtList.translate(self.nameTable, self.funcTable, ar)
         flattenedStmtCode = list(self.flattenList(nestedStmtCode))
 
         flattenedStmtCode.append(MachineCode(HLT))

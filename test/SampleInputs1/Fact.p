@@ -7,4 +7,6 @@ proc(n)
 		i := i - 1
 		od;
 	return := f
-end
+end;
+
+f := fact(3)
