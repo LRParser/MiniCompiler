@@ -463,7 +463,7 @@ class Expr(object) :
         raise NotImplementedError(
             'Expr.display: virtual method.  Must be overridden.' )
 
-    def translate( self, nt=None, ft=None ) :
+    def translate( self, nt=None, ft=None, ar = None ) :
         'For debugging.'
         raise NotImplementedError(
             'Expr.display: virtual method.  Must be overridden.' )
@@ -496,7 +496,7 @@ class Number( Expr ) :
     def __hash__(self):
         return hash(self.value)
 
-    def translate( self, nt=None, ft=None ) :
+    def translate( self, nt=None, ft=None, ar = None ) :
         #check to see if number is in the symbol table
         log.debug("Entering translate method for Number %s" % self)
 
@@ -537,7 +537,7 @@ class Ident( Expr ) :
         return hash(self.name)
 
 
-    def translate( self, nt=None, ft=None ) :
+    def translate( self, nt=None, ft=None, ar = None ) :
         #check to see if Ident is in the symbol table
         log.debug("Entering translate method for Ident: %s", self)
         entry = SymbolTableUtils.createOrGetSymbolTableReference(self.name,self.name,VAR)
@@ -560,18 +560,18 @@ class Times( Expr ) :
     def eval( self, nt, ft ) :
         return self.lhs.eval( nt, ft ) * self.rhs.eval( nt, ft )
 
-    def translate(self, nt, ft ) :
+    def translate(self, nt, ft, ar ) :
         log.debug("Entering translate method for Times")
 
         instructions = list()
 
         # Get the Left Hand Side.
-        (lhsCode, lhsStorageLocation) = self.lhs.translate(nt,ft)
+        (lhsCode, lhsStorageLocation) = self.lhs.translate(nt,ft,ar)
         for instr in lhsCode :
             instructions.append(instr)
 
         # Get the Right Hand Side.
-        (rhsCode, rhsStorageLocation) = self.rhs.translate(nt,ft)
+        (rhsCode, rhsStorageLocation) = self.rhs.translate(nt,ft,ar)
         for instr in rhsCode :
             instructions.append(instr)
 
@@ -604,18 +604,18 @@ class Plus( Expr ) :
     def eval( self, nt, ft ) :
         return self.lhs.eval( nt, ft ) + self.rhs.eval( nt, ft )
 
-    def translate(self, nt, ft ) :
+    def translate(self, nt, ft, ar ) :
         log.debug("Entering translate method for Plus")
 
         instructions = list()
 
         # Get the Left Hand Side.
-        (lhsCode, lhsStorageLocation) = self.lhs.translate(nt,ft)
+        (lhsCode, lhsStorageLocation) = self.lhs.translate(nt,ft,ar)
         for instr in lhsCode :
             instructions.append(instr)
 
         # Get the Right Hand Side.
-        (rhsCode, rhsStorageLocation) = self.rhs.translate(nt,ft)
+        (rhsCode, rhsStorageLocation) = self.rhs.translate(nt,ft,ar)
         for instr in rhsCode :
             instructions.append(instr)
 
@@ -648,18 +648,18 @@ class Minus( Expr ) :
     def eval( self, nt, ft ) :
         return self.lhs.eval( nt, ft ) - self.rhs.eval( nt, ft )
 
-    def translate( self, nt, ft ) :
+    def translate( self, nt, ft, ar ) :
         log.debug("Entering translate method for Minus")
 
         instructions = list()
 
         # Get the Left Hand Side.
-        (lhsCode, lhsStorageLocation) = self.lhs.translate(nt,ft)
+        (lhsCode, lhsStorageLocation) = self.lhs.translate(nt,ft,ar)
         for instr in lhsCode :
             instructions.append(instr)
 
         # Get the Right Hand Side.
-        (rhsCode, rhsStorageLocation) = self.rhs.translate(nt,ft)
+        (rhsCode, rhsStorageLocation) = self.rhs.translate(nt,ft,ar)
         for instr in rhsCode :
             instructions.append(instr)
 
@@ -693,7 +693,7 @@ class FunCall( Expr ) :
     def eval( self, nt, ft ) :
         return ft[ self.name ].apply( nt, ft, self.argList )
 
-    def translate( self, nt, ft ) :
+    def translate( self, nt, ft, ar ) :
         raise Exception("Functions not supported by mini compiler")
 
     def display( self, nt, ft, depth=0 ) :
@@ -758,13 +758,13 @@ class AssignStmt( Stmt ) :
     def __hash__( self ) :
         return hash(self.name)
 
-    def translate(self, nt, ft) :
+    def translate(self, nt, ft, ar) :
         '''Produces (unlinked) machine code to load the locates of RHS via LD, and store into location of LHS via LD'''
         log.debug("Entering translate method for AssignStmt: %s" % self)
         instructions = list()
 
         # First, execute the code corresponding to the RHS
-        (rhsCode, rhsStorageLocation) = self.rhs.translate(nt,ft)
+        (rhsCode, rhsStorageLocation) = self.rhs.translate(nt,ft,ar)
         for instr in rhsCode :
             instructions.append(instr)
             # instructions.append(rhsCode)
@@ -796,7 +796,7 @@ class DefineStmt( Stmt ) :
     def eval( self, nt, ft ) :
         ft[ self.name ] = self.proc
 
-    def translate(self, nt, ft) :
+    def translate(self, nt, ft, ar) :
         raise Exception("Functions not supported for mini compiler")
 
     def display( self, nt, ft, depth=0 ) :
@@ -822,11 +822,11 @@ class IfStmt( Stmt ) :
         else :
             self.fBody.eval( nt, ft )
 
-    def translate( self, nt, ft ) :
+    def translate( self, nt, ft, ar ) :
         instructions = list()
 
         # translate the conditional expression
-        (condCode, storageLocation) = self.cond.translate( nt, ft)
+        (condCode, storageLocation) = self.cond.translate( nt, ft, ar)
         for instr in condCode :
             instructions.append(instr)
 
@@ -839,7 +839,7 @@ class IfStmt( Stmt ) :
         instructions.append(MachineCode(JMZ, falseBodyLabel))
 
         # translate the trueBody
-        (trueBody, storageLocation) = self.tBody.translate(nt, ft)
+        (trueBody, storageLocation) = self.tBody.translate(nt, ft, ar)
         for instr in trueBody :
             instructions.append(instr)
 
@@ -851,7 +851,7 @@ class IfStmt( Stmt ) :
         instructions.append(MachineCode(JMP, nextStatement))
 
         # translate the falseBody
-        (falseBody, storageLocation) = self.fBody.translate(nt, ft)
+        (falseBody, storageLocation) = self.fBody.translate(nt, ft, ar)
         if not falseBody:
             #insert NOOP
             instructions.append(NoOp(falseBodyLabel))
@@ -889,7 +889,7 @@ class WhileStmt( Stmt ) :
         while self.cond.eval( nt, ft ) > 0 :
             self.body.eval( nt, ft )
 
-    def translate( self, nt, ft) :
+    def translate( self, nt, ft, ar) :
         log.debug("Entering translate for WhileStmt")
         instructions = list()
 
@@ -897,12 +897,12 @@ class WhileStmt( Stmt ) :
         loopBeginLabel = LABEL_FACTORY.get_label()
 
         # translate the body of the conditional
-        (condBody, storageLocation) = self.cond.translate(nt, ft)
+        (condBody, storageLocation) = self.cond.translate(nt, ft, ar)
 
         log.debug("Condition returned %s storage: %s" % (condBody, storageLocation))
 
         if len(condBody) is not 0:
-            condBody[0].label = loopBeginlabel
+            condBody[0].label = loopBeginLabel
 
             log.debug("Replaced machine code with: %s " % condBody[0])
 
@@ -925,7 +925,7 @@ class WhileStmt( Stmt ) :
         instructions.append(MachineCode(JMZ, loopEndLabel))
 
         # translate the loopBody
-        (loopBody, storageLocation) = self.body.translate(nt, ft)
+        (loopBody, storageLocation) = self.body.translate(nt, ft, ar)
         for instr in loopBody :
             instructions.append(instr)
 
@@ -961,11 +961,11 @@ class StmtList :
         for s in self.sl :
             s.eval( nt, ft )
 
-    def translate( self, nt, ft ) :
+    def translate( self, nt, ft, ar ) :
 
         instructions = list()
         for s in self.sl :
-            (s.instructions, s.storageLocation) = s.translate( nt, ft)
+            (s.instructions, s.storageLocation) = s.translate( nt, ft, ar)
             lastStorageLocation = s.storageLocation
             for instr in s.instructions :
                 instructions.append(instr)
@@ -1048,7 +1048,8 @@ class Program :
 
 
     def translate( self ) :
-        nestedStmtCode, lastStorageLocation = self.stmtList.translate(self.nameTable, self.funcTable)
+        ar = ActivationRecord()
+        nestedStmtCode, lastStorageLocation = self.stmtList.translate(self.nameTable, self.funcTable, ar)
         flattenedStmtCode = list(self.flattenList(nestedStmtCode))
 
         flattenedStmtCode.append(MachineCode(HLT))
