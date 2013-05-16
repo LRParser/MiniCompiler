@@ -506,7 +506,7 @@ class Number( Expr ) :
         #instructions.append(MachineCode(LD,self))
         #instructions.append(MachineCode(ST,self))
 
-        return (instructions, self)
+        return (instructions, self, ar)
 
 
 class Ident( Expr ) :
@@ -544,7 +544,7 @@ class Ident( Expr ) :
         instructions = list()
         #instructions.append(MachineCode(LD,self.name))
 
-        return (instructions, self.name)
+        return (instructions, self.name, ar)
 
 class Times( Expr ) :
     '''expression for binary multiplication'''
@@ -585,7 +585,7 @@ class Times( Expr ) :
             log.debug("%s %s " % (val.opcode, val.operand))
 
         log.debug("Times translated")
-        return (instructions, resultStorageLocation)
+        return (instructions, resultStorageLocation, ar)
 
     def display( self, nt, ft, depth=0 ) :
         print "%sMULT" % (tabstop*depth)
@@ -629,7 +629,7 @@ class Plus( Expr ) :
             log.debug("%s %s " % (val.opcode, val.operand))
 
         log.debug("Plus translated")
-        return (instructions, resultStorageLocation)
+        return (instructions, resultStorageLocation, ar)
 
     def display( self, nt, ft, depth=0 ) :
         print "%sADD" % (tabstop*depth)
@@ -673,7 +673,7 @@ class Minus( Expr ) :
             log.debug("%s %s " % (val.opcode, val.operand))
 
         log.debug("Minus translated")
-        return (instructions, resultStorageLocation)
+        return (instructions, resultStorageLocation, ar)
 
     def display( self, nt, ft, depth=0 ) :
         print "%sSUB" % (tabstop*depth)
@@ -784,7 +784,7 @@ class AssignStmt( Stmt ) :
 
         GLOBAL_SYMBOL_TABLE.dump()
 
-        return (instructions, self.name)
+        return (instructions, self.name, ar)
 
 class DefineStmt( Stmt ) :
     '''Binds a proc object to a name'''
@@ -867,7 +867,7 @@ class IfStmt( Stmt ) :
         # insert the nextStatement label
         instructions.append(NoOp(nextStatement))
 
-        return (instructions,storageLocation)
+        return (instructions,storageLocation, ar)
 
 
     def display( self, nt, ft, depth=0 ) :
@@ -938,7 +938,7 @@ class WhileStmt( Stmt ) :
         # insert the loopEndLabel
         instructions.append(NoOp(loopEndLabel))
 
-        return (instructions,storageLocation)
+        return (instructions,storageLocation, ar)
 
     def display( self, nt, ft, depth=0 ) :
         print "%sWHILE" % (tabstop*depth)
@@ -969,7 +969,7 @@ class StmtList :
             lastStorageLocation = s.storageLocation
             for instr in s.instructions :
                 instructions.append(instr)
-        return (instructions,lastStorageLocation)
+        return (instructions,lastStorageLocation, ar)
 
 
     def display( self, nt, ft, depth=0 ) :
