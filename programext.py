@@ -52,10 +52,15 @@ import logging
 
 logging.basicConfig(
     format = "%(levelname) -4s %(message)s",
-    level = logging.INFO
+    level = logging.DEBUG
 )
 
 log = logging.getLogger('programext')
+
+def log_inst(name, inst_list):
+    log.debug("Print out instructions for %s" % name)
+    for i in inst_list:
+        log.debug(i)
 
 ####  CONSTANTS   ################
 
@@ -63,6 +68,9 @@ log = logging.getLogger('programext')
 returnSymbol = 'return'
 
 tabstop = '  ' # 2 spaces
+
+MEMORY_SIZE = 40
+
 ######   OPCODES   ##################
 
 LD = 'LDA'
@@ -104,6 +112,8 @@ class MachineCode(object):
     @property
     def is_jump(self):
         if 'JM' in self.opcode:
+            return True
+        elif 'CAL' in self.opcode:
             return True
         else:
             return False
@@ -185,11 +195,9 @@ class TempVariableFactory(object):
 
     def get_temp(self):
         temp = TempVariable(self.count)
-        SymbolTableUtils.createOrGetSymbolTableReference(temp,temp.label,TEMP)
+#        SymbolTableUtils.createOrGetSymbolTableReference(temp,temp.label,TEMP)
         self.count = self.count + 1
         return temp
-
-TEMP_VARIABLE_FACTORY = TempVariableFactory()
 
 class ActivationRecord(object):
 
@@ -198,6 +206,11 @@ class ActivationRecord(object):
         self.temp_factory = TempVariableFactory()
 
         self.on_stack = dict()
+
+        # Decleare some 'constants'
+        self.RETURN_VALUE = 'return_value'
+        self.PREV_FP = 'prev_fp'
+        self.RETURN_ADDR = 'return_addr'
 
     def __inc(self):
         self.rel_mem_addr += 1
@@ -219,15 +232,12 @@ class ActivationRecord(object):
         else:
             instructions = list()
 
-            make_inst = self.__make_inst_list(instructions)
-            prev_make_inst = previousAR.__make_inst_list(instructions)
-
             for param in parameterList:
                 #Load from the previous AR
                 instructions.extend(previousAR.load_stack_var(param))
 
                 #create space on the stack
-                self.__alloc_param(param)
+                self.alloc_param(param)
 
                 #and store the new param
                 instructions.exend(self.set_stack_var(param))
@@ -237,9 +247,6 @@ class ActivationRecord(object):
     def store_prev_fp(self):
         '''Generate the RAL code to store the previous FP
         '''
-        #create space for the return addr
-        self.__alloc_param("prev_fp")
-
         instructions = list()
 
         make_inst = self.__make_inst_list(instructions)
@@ -248,12 +255,12 @@ class ActivationRecord(object):
         make_inst(LDA, FPADDR)
 
         #Store it
-        return instructions.extend(self.set_stack_var("prev_fp"))
+        return instructions.extend(self.set_stack_var(self.PREV_FP))
 
 
     def load_prev_fp(self):
         "Return RAL code to load the previous FP into the ACC"
-        return self.load_stack_var("prev_fp")
+        return self.load_stack_var(self.PREV_FP)
 
 
 
@@ -263,17 +270,25 @@ class ActivationRecord(object):
         temp = self.temp_factory.get_temp()
 
         #Store the temp variable and it's location
-        self.__alloc_param(temp)
+        self.alloc_param(temp)
 
         return temp
 
-    def __alloc_param(self, param):
+    def alloc_param(self, param):
         "alloc space on the stack for a param"
+        log.debug("Alloc room on the AR for param: %s" % param)
         self.on_stack[param] = self.rel_mem_addr
 
         self.__inc()
 
-    def __get_offset(self, var):
+    def param_exists(self, param):
+        if param in self.on_stack:
+            return True
+        else:
+            return False
+
+    def get_offset(self, var):
+        self.__assert_var(var)
         return self.on_stack[var]
 
 
@@ -288,7 +303,7 @@ class ActivationRecord(object):
         make_inst = self.__make_inst_list(list())
 
         make_inst(LDA, FPADDR)
-        make_inst(SUB, self.__get_offset(var))
+        make_inst(SUB, self.get_offset(var))
         make_inst(STA, FPBADDR)
         return make_inst(LDI, FPBADDR)
 
@@ -305,7 +320,7 @@ class ActivationRecord(object):
         #Look up the var, but first get the FP
         make_inst(LDA, FPADDR)
         #calc offset
-        make_inst(SUB, self.__get_offset(var))
+        make_inst(SUB, self.get_offset(var))
         #store offset in FPBADDR
         make_inst(STA, FPBADDR)
         #now load back the value into the ACC
@@ -313,14 +328,23 @@ class ActivationRecord(object):
         #now store that into the value FP points to
         return make_inst(STI, FPBADDR)
 
-    def store_return(self):
+    def store_return_value(self):
         "Assumes return is in ACC"
-        self.__alloc_param("return")
+        return self.set_stack_var(self.RETURN_VALUE)
 
-        return self.set_stack_var("return")
+    def load_return_value(self):
+        return self.load_stack_var(self.RETURN_VALUE)
 
-    def load_return(self):
-        return self.load_stack_var("return")
+    def store_return_addr(self):
+        "Assumes return addr is in ACC"
+        return self.set_stack_var(self.RETURN_ADDR)
+
+    def jump_to_return_addr(self):
+        "Produce the RAL code to jump to the return addr"
+        make_inst = self.__make_inst_list(list())
+
+        return make_inst(JMI, self.get_offset(self.RETURN_ADDR))
+
 
     def __make_inst_list(self, the_list):
         '''Return a function that takes machine code operators and operands and
@@ -335,6 +359,62 @@ class ActivationRecord(object):
         return machine_code_append
 
 
+    def alloc_epilogue(self):
+        'Should be called after the proc is translated'
+        self.alloc_param(self.RETURN_VALUE)
+        self.alloc_param(self.PREV_FP)
+        self.alloc_param(self.RETURN_ADDR)
+
+    def prologue_update_fp_sp(self):
+        'Sets the fp to the sp and sets sp to the return addr'
+        make_inst = self.__make_inst_list(list())
+
+        #
+        # Store previous FP
+        #
+        make_inst(LDA, FPADDR).extend(self.set_stack_var(self.PREV_FP))
+        #
+        # Update FP
+        #
+        #load SP
+        make_inst(LDA, SPADDR)
+        #sub one to point to new AR
+        make_inst(SUB, 1)
+        #Store that ADDR into the FP
+        make_inst(STA, FPADDR)
+        #
+        # Update SP
+        #
+        #FP is already in ACC, so get offset to ret addr
+        make_inst(SUB, self.get_offset(self.RETURN_ADDR))
+        #Update the SP to point to the ret. addr
+        return make_inst(STA, SPADDR)
+
+    def epilogue_update_fp_sp(self):
+        'Sets the fp to the sp and sets sp to the return addr'
+        make_inst = self.__make_inst_list(list())
+
+        #
+        # Update SP
+        #
+        #load FP
+        make_inst(LDA, FPADDR)
+        #add one to point to end of the old AR
+        make_inst(ADD, 1)
+        #Store that ADDR into the FP
+        make_inst(STA, SPADDR)
+        #
+        # Update FP
+        #
+        #FP load previous FP
+        make_inst(LDA, self.get_offset(self.PREV_FP))
+        #Update the FP to point to the previous FP
+        return make_inst(STA, FPADDR)
+
+    def call(self, function_label):
+        "Assumes SP already points to ret address"
+        make_inst = self.__make_inst_list(list())
+        return make_inst(CAL, function_label)
 
 
 class NoOp(MachineCode):
@@ -385,7 +465,7 @@ GLOBAL_SYMBOL_TABLE = SymbolTable()
 class SymbolTableUtils :
 
     @staticmethod
-    def createOrGetSymbolTableReference(key, entryVal, entryType ) :
+    def createOrGetSymbolTableReference1(key, entryVal, entryType ) :
         entry = None
         if key in GLOBAL_SYMBOL_TABLE:
             log.debug("Found %s in the symbol table" % key)
@@ -410,17 +490,40 @@ class SymbolTableUtils :
 
         memLines = list()
 
+        def pretty_print(count):
+
+            def f(value,typeof):
+                addr = count['currentAddr']
+                memLines.append("%-3d %-3s ; %s" % (addr, value, typeof) )
+                count['currentAddr'] = addr + 1
+
+            return f
+
+        count = dict()
+        count['currentAddr'] = 1
+
+        memdump = pretty_print(count)
+
+        #set the known registers
+        memdump(MEMORY_SIZE-1, "SP")
+        memdump(0, "FP")
+        memdump(0, "FPB")
+        memdump(0, "TEMP")
+
+        for register in range(6): #10 registers total
+            memdump('0', 'register')
+
         for const in linkedSymbolTable.iterate(CONST) :
-            memLines.append("%d  %s ; %s" % (currentAddr, const.value, const) )
-            currentAddr = currentAddr + 1
+            memdump(const.value, const)
 
         for var in linkedSymbolTable.iterate(VAR) :
-            memLines.append("%d  %s ; %s" % (currentAddr, 0, var) )
-            currentAddr = currentAddr + 1
+            memdump(0, var)
 
         for temp in linkedSymbolTable.iterate(TEMP) :
-            memLines.append("%d  %s ; %s" % (currentAddr, 0, temp) )
-            currentAddr = currentAddr + 1
+            memdump(0, temp)
+
+        for i in range(count['currentAddr'], MEMORY_SIZE):
+            memdump(0, "FREE STACK")
 
         log.debug("Memory table generated")
         return memLines
@@ -431,7 +534,8 @@ class Linker(object) :
 
     @staticmethod
     def linkAddressesToSymbolTable(symbolTable) :
-        currentAddr = 1
+        #start at an offset from the registers
+        currentAddr = 10
         for const in symbolTable.iterate(CONST) :
             const.address = currentAddr
             currentAddr = currentAddr + 1
@@ -443,6 +547,8 @@ class Linker(object) :
         for temp in symbolTable.iterate(TEMP) :
             temp.address = currentAddr
             currentAddr = currentAddr + 1
+
+        log.debug("linkaddressesToSymbolTable currentaddr: %d" % currentAddr)
 
 class Expr(object) :
     '''Virtual base class for expressions in the language'''
@@ -500,11 +606,9 @@ class Number( Expr ) :
         #check to see if number is in the symbol table
         log.debug("Entering translate method for Number %s" % self)
 
-        entry = SymbolTableUtils.createOrGetSymbolTableReference(self,self.value,CONST)
+        entry = SymbolTableUtils.createOrGetSymbolTableReference1(self,self.value,CONST)
 
         instructions = list()
-        #instructions.append(MachineCode(LD,self))
-        #instructions.append(MachineCode(ST,self))
 
         return (instructions, self, ar)
 
@@ -694,7 +798,45 @@ class FunCall( Expr ) :
         return ft[ self.name ].apply( nt, ft, self.argList )
 
     def translate( self, nt, ft, ar ) :
-        raise Exception("Functions not supported by mini compiler")
+        log.debug("Entering translate for FunCall: %s" % self.name)
+
+        proc_to_call = ft[ self.name ]
+        new_ar = proc_to_call.ar
+
+        instructions = list()
+        #
+        # Prologue
+        #
+        #First update fp and sp
+        instructions.extend(new_ar.prologue_update_fp_sp())
+
+        #store the parameters
+        #instuctions.extend(new_ar.store_parameters(ar, ))
+
+
+        #call the function
+        instructions.extend(new_ar.call(ft[self.name].label))
+
+        #
+        # Epilogue
+        #
+        # The return value is already stored and the jump has already been
+        # translated
+
+        # load the return value into the ACC
+        instructions.extend(new_ar.load_return_value())
+
+        # and store in the caller's ar
+        return_val = ar.alloc_temp()
+        ar.set_stack_var(return_val)
+
+        #pop the AR
+        instructions.extend(new_ar.epilogue_update_fp_sp())
+
+        log_inst("translated funcall", instructions)
+
+        return (instructions, return_val, ar)
+
 
     def display( self, nt, ft, depth=0 ) :
         print "%sFunction Call: %s, args:" % (tabstop*depth, self.name)
@@ -764,23 +906,33 @@ class AssignStmt( Stmt ) :
         instructions = list()
 
         # First, execute the code corresponding to the RHS
-        (rhsCode, rhsStorageLocation, rhsActivationRecord) = self.rhs.translate(nt,ft,ar)
+        (rhsCode, rhsStorageLocation, ar) = self.rhs.translate(nt,ft,ar)
         for instr in rhsCode :
             instructions.append(instr)
             # instructions.append(rhsCode)
         log.debug("RHS of AssignStmt translated")
+        log.debug("RHS storage: %s" % rhsStorageLocation)
 
-        # The value computed by the RHS is now in the accumulator. First, ensure the Ident on LHS is in the
-        # symbol table for later linking
-        entry = SymbolTableUtils.createOrGetSymbolTableReference(self,self.name,VAR)
+        # The value computed by the RHS is now in the accumulator. Make sure it
+        # exists on the AR
+        if not ar.param_exists(self.name):
+            ar.alloc_param(self.name)
+
 
         # First, ensure the Ident is in the symbol table. Then, store the value in the accumulator in the
         # memory address pointed to by the Ident on the LHS
-        ldCode = MachineCode(LD, rhsStorageLocation)
-        instructions.append(ldCode)
-        assignCode = MachineCode(ST, self.name)
-        instructions.append(assignCode)
+        if (isinstance(self.rhs, FunCall)):
+            #load the return result into the ACC
+            instructions.extend(ar.load_stack_var(rhsStorageLocation))
+        else:
+            #load directly from the memory
+            instructions.append(MachineCode(LDA, rhsStorageLocation))
+
+        #now set the LHS
+        instructions.extend(ar.set_stack_var(self.name))
+
         log.debug("LHS of AssignStmt translated")
+        log_inst("assignStmt translation", instructions)
 
         GLOBAL_SYMBOL_TABLE.dump()
 
@@ -792,17 +944,31 @@ class DefineStmt( Stmt ) :
     def __init__( self, name, proc ) :
         self.name = name
         self.proc = proc
+        self.proc.label = LABEL_FACTORY.get_label()
 
     def eval( self, nt, ft ) :
-        ft[ self.name ] = self.proc
+        self.__add_self_to_function_table(ft)
 
     def translate(self, nt, ft, ar) :
-        raise Exception("Functions not supported for mini compiler")
+
+        log.debug("Entering translate for Define Stmt")
+
+        self.__add_self_to_function_table(ft)
+
+        instructions = self.proc.translate(nt, ft)
+        instructions[0].label = self.proc.label
+
+        log_inst("translated defineStmt", instructions)
+
+        return (instructions, None, None)
 
     def display( self, nt, ft, depth=0 ) :
         print "%sDEFINE %s :" % (tabstop*depth, self.name)
         self.proc.display( nt, ft, depth+1 )
 
+
+    def __add_self_to_function_table(self, ft):
+        ft[ self.name ] = self.proc
 
 class IfStmt( Stmt ) :
 
@@ -967,6 +1133,7 @@ class StmtList :
         for s in self.sl :
             (s.instructions, s.storageLocation, activationRecord) = s.translate( nt, ft, ar)
             lastStorageLocation = s.storageLocation
+            log.debug("s.instructions: %s" % s.instructions)
             for instr in s.instructions :
                 instructions.append(instr)
         return (instructions,lastStorageLocation, ar)
@@ -994,14 +1161,13 @@ class Proc :
 
         self.parList = paramList
         self.body = body
+        self.ar = ActivationRecord()
+        self.label = None
 
     def apply( self, nt, ft, args ) :
         newContext = {}
 
-        # sanity check, # of args
-        if len( args ) is not len( self.parList ) :
-            print "Param count does not match:"
-            sys.exit( 1 )
+        self.__check_arg_list(args)
 
         # bind parameters in new name table (the only things there right now)
         # use zip, bastard
@@ -1019,10 +1185,43 @@ class Proc :
             print "Error:  no return value"
             sys.exit( 2 )
 
+    def translate( self, nt, ft):
+
+        log.debug("Entering translate for Proc")
+
+        #first create the parameter list on the AR.
+        for param in self.parList:
+            log.debug("Param: %s" % param)
+            self.ar.alloc_param(param)
+
+        (instructions, lastStorageLocation, returnAR) = self.body.translate(nt, ft, self.ar)
+
+        log_inst("Translated body", instructions)
+
+        self.ar = returnAR
+
+        #alloc the epliogue on the AR
+        self.ar.alloc_epilogue()
+
+        instructions.extend(self.ar.jump_to_return_addr())
+
+        log_inst("translated proc", instructions)
+
+        return instructions
+
+
+
+
+
     def display( self, nt, ft, depth=0 ) :
         print "%sPROC %s :" % (tabstop*depth, str(self.parList))
         self.body.display( nt, ft, depth+1 )
 
+    def __check_arg_list(self, args):
+        # sanity check, # of args
+        if len( args ) is not len( self.parList ) :
+            print "Param count does not match:"
+            sys.exit( 1 )
 
 class Program :
 
@@ -1047,6 +1246,9 @@ class Program :
         return [x for x in instructions if x is not None]
 
 
+    def __init_sp_fp(self):
+        "generate the RAL code to init the SP and FP"
+
     def translate( self ) :
         ar = ActivationRecord()
         nestedStmtCode, lastStorageLocation, activationRecord = self.stmtList.translate(self.nameTable, self.funcTable, ar)
@@ -1058,6 +1260,7 @@ class Program :
 
         # Append a HLT instruction
 
+        log_inst("translated program", flattenedStmtCode)
 
 
         return flattenedStmtCode
@@ -1067,12 +1270,16 @@ class Program :
         for key in GLOBAL_SYMBOL_TABLE.iterkeys() :
             log.debug(key)
         for line in machineCode :
-            if(line.operand is None or line.is_jump) :
-                # No need to link the HLT instruction
-                continue
-            linkedAddr = GLOBAL_SYMBOL_TABLE[line.operand].address
-            line.operand = linkedAddr
-            log.debug("Linked operand %s to address: %s" % (line.operand, linkedAddr))
+
+            try:
+                linkedAddr = GLOBAL_SYMBOL_TABLE[line.operand].address
+                line.operand = linkedAddr
+                log.debug("Linked operand %s to address: %s" % (line.operand, linkedAddr))
+
+            except KeyError:
+                pass
+
+            log.debug("Linked MachineCode: %s" % line)
 
         for inst in machineCode:
             if (inst.is_jump):

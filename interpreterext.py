@@ -169,7 +169,6 @@ def p_program( p ) :
 
   GLOBAL_SYMBOL_TABLE.clear()
   LABEL_FACTORY.count = 0
-  TEMP_VARIABLE_FACTORY.count = 0
 
   #now optimize (requires re-translate)
   instructions = translate()
