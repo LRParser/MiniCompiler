@@ -1,18 +1,17 @@
-Group #9 Assignment #3
+Group #9 Assignment #4
 	Jon Boone
 	Joshua Datko
 	Paul DeMicco
 	Joseph Heenan
 ________________
 
-OVERVIEW: Assignment #3
+OVERVIEW: Assignment #4
 ___________
 
-This project implements a compiler who's target language is the RAL instruction set run on the RAM
-simulator. This is accomplished by modifying the  mini language interpreter generate RAL instructions,
-optimize the instructions, and then link the instructions to memory addresses.
+This project builds upon project #3 which was a compiler developed targeting the RAL instruction set
+that runs on the RAM simulator.
 
-This package contains all of the files for Assignment #3.
+This package contains all of the files for Assignment #4.
 
 =======
 interpreterext.py		** Contains the grammar for the original mini language. Also contains the main method which
@@ -26,58 +25,66 @@ interpreterext.py		** Contains the grammar for the original mini language. Also 
                         ** 2.) program-non-opt.txt - Contains the RAL code after linking is performed (but before optimization)
                         ** 3.) program-opt.txt - Contains the RAL code after optimization and linking has been executed.
                         ** 4.) mem-dump.txt - Outputs the non-optimized memory table. Breaks down the VARS, CONSTS and TEMP variables stored in memory and and displays their name, and memory address.
-                        ** 5.) mem-dump-opt.txt - Output the optimized memory table. Used for simulation with RAM simultator
+                        ** 5.) mem-dump-opt.txt - Output the optimized memory table. Used for simulation with RAM simulator
 
 programext.py			** Contains the implementation for the grammar along with all of the implementation for
                         ** generating the RAL code to be used in the RAM simulator.
 
-makefile			    ** Contains the following targets as defined in the requirements.
-                        ** view - displays all source code other than the RAM simulator code.
-                        ** compile - runs the interpreter which generates the RAL code files.
-                        ** view-trans - displays the symbolic RAL program.
-                        ** view-link - displays the compiled, but not optimized RAL code.
-                        ** view-op - displayed the optimized RAL code.
-                        ** run - runs the RAM simulator with the non-optimized linked RAL code output.
-                        ** run-op - runs the RAM simulator with the optimized linked RAL code output.
-                        ** clean - cleans all intermediate and binary files.
+makefile
+
+
+                        ** view — display (using the more utility) all of your source code (excluding the modified RAM)
+                        ** compile — Does whatever you need to do to produce:
+                        *       symbolic RAL code
+                        **      linked RAL code
+                        ** view-trans — Use cat to display your symbolic RAL program (produced in translate) to stdout.
+                        ** view-link — Use cat to display your compiled (not optimised) RAL program (produced in translate to stdout.
+                        ** run — invoke ~kschmidt/bin/ram to run your program. Let output go to stdout.
+                        ** clean — remove all binaries and intermediate files
 
     *** Application Notes ***
 
-    All Expressions (Number,Ident,Times,Plus,Minus) and statements (AssignStmt,IfStmt,WhileStmt)
-    have been modified to include a translate method which will return a tuple including RAL instructions,
-    and the final storage location for the method.
+    The RAL instruction set has been expanded to now include all of the following calls:
+        ADD = 'ADD'
+        SUB = 'SUB'
+        MUL = 'MUL'
+        JMP = 'JMP'
+        JMI = 'JMI'
+        JMN = 'JMN'
+        JMZ = 'JMZ'
+        CAL = 'CAL'
+        HLT = 'HLT'
+        LDA = 'LDA'
+        STA = 'STA'
+        LDI = 'LDI'
+        STI = 'STI'
 
-    RAL instructions are stored as a MachineCode type which includes opcode, operand and label properties.
+    The call stack has been modified to store ActivationRecords which store parameters, local variables, temporary variables, etc. for
+    procedures that are defined.
 
-    Symbol table access for VARs and CONSTs are done via a SymbolTableUtils helper class. Temp variables are
-    created using the TempVariableFactory helper class and Labels (used in WhileStmt and IfStmt) are created
-    using the LabelFactory helper class. The helper method 'createOrGetSymbolTableReference' in
-    SymbolTableUtils will automatically create an entry in the Global Symbol table if one
-    does not exist, or it will simply return the one that does exist. The Global symbol table is a list of
-    SymbolTableEntry objects which include properties for value, type, and address (to be filled in by the linker).
+    A memory map of the following structure has been defined for this project:
 
-    After all statements and expressions have been translated you will end up with a list of RAL instructions that
-    are not linked to addresses, and not optimized.  Optimization will occur after this step.  Optimization currently
-    performs a 'Peephole' Optimization scheme in which it looks for redundant LD commands. This is done by detecting
-    if the current operand and the previous operand are the same, and if the previous operand is a ST (Store) and the
-    current is a LD (Load).  There is no need to Load the operand if it was just Stored because it is already located
-    in the AC (Accumulator).
+    The stack pointer will always be stored at Address #1.
+    The frame pointer will always be stored at Address #2.
+    Frame pointer buffer will always be stored at Address #3.
+    A temporary register will always be stored at Address #4.
 
-    ** Extra credit
+    DefineStmt has been modified with a 'translate' method that will not support procedures.
+        The DefineStmt will add the function name to the function table along with creating a label
+        so that we can jump back to that function.
 
-    For extra credit, Constant Folding optimization is peformed. This step looks at symbolic (non-linked) machine code
-    and attempts to identify instructions performed using only compile-time constants, and pre-computes their values. In this way,
-    LD , ADD and ST to a temporary variable might be replaced with just LD from an added row in the memory table which pre-computes the value of this
-    addition at compile time. Currently addition, subtracting and multiplication of constants is supported via Constant folding optimization. This optimization
-    improves (decreases) running time of the program, at the cost of a larger memory table and longer compile time in the optimization phase. Only 1 round of folding
-    is currently done and no attempts are made to implement further constant propagation optimizations or decrease memory footprint by removing constants
-    locations that are unneeded due to the folding phase. The optimization is performed via the performConstantFolding method in the Program class of programext.py file
+    Proc has been modified with a 'translate' method so that function calls can be translated.
+        Proc will create the ActivationRecord for the function and add the parameters needed for the
+        function to the ActivationRecord along with storing all of the instructions needed for the function to be executed.
 
-    ** End extra credit.
+    FunCall has been modified with a 'translate' method so that function calls can be translated.
+        FunCall will access the ActivationRecord created by Proc along with setting the stack and frame pointer.
+        The function will be called at this time and the return value will be stored back into
+        the AC register.
 
-    Once the RAL code is optimized we must now link it to actual addresses.  This is done via the Linker which loops
-    through all statements and finds the operand's address that was created in the symbol table. Linked RAL code can
-    now be ran on the RAM simulator.
+    The linker is still responsible for resolving actual addresses.
+    The final output of the application will be optimized RAL code along with the memory table to be used as input into
+    the RAL simulator.
 
 TEST FILES - Will be explained in detail below :
 ________________
@@ -104,16 +111,14 @@ whileTest1.p    ** Used to test the While Statement
 
 README				** This file. Contains details out how to run files, build, test, etc.
 
-RUNNING: Assignment #3, Part #1
+RUNNING: Assignment #4, Part #1
 ___________
 
-Executing make run < myinputfile (where you substitute myinputfile for an appropriate mini language input file) will compile and run (but not optimize) myinputfile
-
-Executing make run-op < myinputfile (where you substitute myinputfile for an appropriate mini language input file) will compile, optimize and run myinputfile
+Executing make run < myinputfile (where you substitute myinputfile for an appropriate mini language input file) will compile and run myinputfile
 
 Other included targets are view, compile, view-trans, view-link, view-op and clean to supporting viewing all source, compile/link/optimize of input on stdin, viewing symbolic RAL, viewing linked RAL, viewing optimized RAL, and cleaning output file, respectively
 
-TESTING: Assignment #3, Part #1
+TESTING: Assignment #4, Part #1
 ___________
 All test case files (*.p) have been run through the compiler to ensure proper operation. The output of the compiler has
 also been ran through the RAM simulator to validate the instructions have been generated properly.
