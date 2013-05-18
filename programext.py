@@ -294,7 +294,7 @@ class ActivationRecord(object):
 
 
     def __assert_var(self, var):
-        assert (var in self.on_stack), "Stack var: %s not found!" % var
+        assert (var in self.on_stack), ("Stack var: %s not found!" % var)
 
     def load_stack_var(self, var):
         "Generate the machine code to load the var from the stack into the ACC"
@@ -312,6 +312,24 @@ class ActivationRecord(object):
         make_inst(SUB, num)
         make_inst(STA, FPBADDR)
         return make_inst(LDI, FPBADDR)
+
+    def load_stack_or_heap_var(self, var):
+        '''Should only really be used if you think you have a heap var,
+        otherwise, stick with load stack var
+        '''
+        inst = list()
+
+        make_inst = self.__make_inst_list(inst)
+
+        try:
+            inst.extend(self.load_stack_var(var))
+        except AssertionError:
+            #not found on stack, right now assuming it's a global
+            # But we may have to search up the ARs...
+            log.debug("Not found on stack: %s" % var)
+            inst.append(MachineCode(LDA, var))
+
+        return inst
 
     def set_stack_var(self, var):
         '''Generates the machine code to store a stack var.  Assumes the value to
@@ -706,15 +724,18 @@ class Times( Expr ) :
             instructions.append(instr)
 
         # load the result of lhs into the accumulator, then subtract the rhs
-        resultStorageLocation = TEMP_VARIABLE_FACTORY.get_temp()
-        instructions.append(MachineCode(LD, lhsStorageLocation))
-        instructions.append(MachineCode(MUL, rhsStorageLocation))
-        instructions.append(MachineCode(ST, resultStorageLocation))
+        resultStorageLocation = ar.alloc_temp()
+        instructions.extend(ar.load_stack_or_heap_var(lhsStorageLocation))
+        instructions.append(MachineCode(STA, TEMP_REG))
+        instructions.extend(ar.load_stack_or_heap_var(rhsStorageLocation))
+        instructions.append(MachineCode(MUL, TEMP_REG))
+        instructions.extend(ar.set_stack_var(resultStorageLocation))
 
         for val in instructions:
             log.debug("%s %s " % (val.opcode, val.operand))
 
         log.debug("Times translated")
+        log_inst("Times", instructions)
         return (instructions, resultStorageLocation, ar)
 
     def display( self, nt, ft, depth=0 ) :
@@ -794,15 +815,25 @@ class Minus( Expr ) :
             instructions.append(instr)
 
         # load the result of lhs into the accumulator, then subtract the rhs
-        resultStorageLocation = TEMP_VARIABLE_FACTORY.get_temp()
-        instructions.append(MachineCode(LD, lhsStorageLocation))
-        instructions.append(MachineCode(SUB, rhsStorageLocation))
-        instructions.append(MachineCode(ST, resultStorageLocation))
+        resultStorageLocation = ar.alloc_temp()
+
+        #load rhs and store that in temp
+        instructions.extend(ar.load_stack_or_heap_var(rhsStorageLocation))
+        instructions.append(MachineCode(STA, TEMP_REG))
+
+        #load LHS
+        instructions.extend(ar.load_stack_or_heap_var(lhsStorageLocation))
+
+        #sub the AC from RHS (TEMP_REG)
+        instructions.append(MachineCode(SUB, TEMP_REG))
+
+        instructions.extend(ar.set_stack_var(resultStorageLocation))
 
         for val in instructions:
             log.debug("%s %s " % (val.opcode, val.operand))
 
         log.debug("Minus translated")
+        log_inst("minus", instructions)
         return (instructions, resultStorageLocation, ar)
 
     def display( self, nt, ft, depth=0 ) :
@@ -823,6 +854,33 @@ class FunCall( Expr ) :
     def eval( self, nt, ft ) :
         return ft[ self.name ].apply( nt, ft, self.argList )
 
+    def translate_arguments(self, proc_to_call, new_ar, nt, ft, at):
+
+        log.debug("Entering translate arguments")
+
+        #check the number args == num of params
+        proc_to_call.check_arg_list(self.argList)
+
+        instructions = list()
+
+        if (not self.argList):
+            return instructions
+
+        for arg, param in zip(self.argList, proc_to_call.parList):
+            log.debug("Translating param: %s" % param)
+
+            arg_inst, return_val, ar = arg.translate(nt, ft, at)
+
+            # Add the argument instructions
+            instructions.extend(arg_inst)
+
+            instructions.extend(ar.load_stack_or_heap_var(return_val))
+            # set that in th new AR
+            new_ar.set_stack_var(param)
+
+
+        return instructions
+
     def translate( self, nt, ft, ar ) :
         log.debug("Entering translate for FunCall: %s" % self.name)
 
@@ -837,8 +895,7 @@ class FunCall( Expr ) :
         instructions.extend(new_ar.prologue_update_fp_sp())
 
         #store the parameters
-        #instuctions.extend(new_ar.store_parameters(ar, ))
-
+        #instructions.extend(self.translate_arguments(proc_to_call, new_ar, nt, ft, ar))
 
         #call the function
         instructions.extend(new_ar.call(ft[self.name].label))
@@ -1108,11 +1165,13 @@ class WhileStmt( Stmt ) :
                 log.debug(instr)
 
             # load the result of condBody
-            instructions.append(MachineCode(LD, storageLocation))
+            instructions.extend(ar.load_stack_var(storageLocation))
 
         else:
             #point the label to the first instruction
-            instructions.append(MachineCode(LD, storageLocation,loopBeginLabel))
+            load_list = ar.load_stack_var(storageLocation)
+            load_list[0].label = loopBeginLabel
+            instructions.extend(load_list)
             log.debug("Loop begin: %s" % instructions[0])
 
         # if the result is false (<= 0), jump to loopEndLabel
@@ -1126,13 +1185,15 @@ class WhileStmt( Stmt ) :
             instructions.append(instr)
 
         # load the result of loopBody
-        instructions.append(MachineCode(LD, storageLocation))
+        instructions.extend(ar.load_stack_var(storageLocation))
 
         # go back to the begining of the loop
         instructions.append(MachineCode(JMP, loopBeginLabel))
 
         # insert the loopEndLabel
         instructions.append(NoOp(loopEndLabel))
+
+        log_inst("while", instructions)
 
         return (instructions,storageLocation, ar)
 
@@ -1197,7 +1258,7 @@ class Proc :
     def apply( self, nt, ft, args ) :
         newContext = {}
 
-        self.__check_arg_list(args)
+        self.check_arg_list(args)
 
         # bind parameters in new name table (the only things there right now)
         # use zip, bastard
@@ -1247,11 +1308,16 @@ class Proc :
         print "%sPROC %s :" % (tabstop*depth, str(self.parList))
         self.body.display( nt, ft, depth+1 )
 
-    def __check_arg_list(self, args):
+    def check_arg_list(self, args):
         # sanity check, # of args
-        if len( args ) is not len( self.parList ) :
-            print "Param count does not match:"
-            sys.exit( 1 )
+        def get_len(args):
+            if not args:
+                return 0
+            else:
+                return len(args)
+
+        assert (get_len(args) == get_len(self.parList)), "Param count does not match"
+
 
 class Program :
 
@@ -1317,9 +1383,9 @@ class Program :
 
         implMain = self.callImplMain()
         implMain.append(MachineCode(HLT))
-        
+
         implMain.extend(list(self.flattenList(implMainCode)))
-        #implMain = self.remove_no_ops(implMain)
+        implMain = self.remove_no_ops(implMain)
 
         log_inst("translated program", implMain)
 
