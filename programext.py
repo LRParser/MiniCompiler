@@ -1303,11 +1303,11 @@ class Program :
 
         main_code = self.call_main()
 
+        main_code.append(MachineCode(HLT))
         log_inst("main_code",main_code);
 
         main_code.extend(flattenedStmtCode)
 
-        main_code.append(MachineCode(HLT))
 
         main_code = self.remove_no_ops(main_code)
 
