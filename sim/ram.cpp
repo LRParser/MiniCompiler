@@ -173,6 +173,12 @@ void RAM::init( string pInput, string mInput, int req_size ) {
 	}	// while tokens
 } // Init( f, f )
 
+void RAM::print_mem()
+{
+  for( int i=1; i<=memorySize(); i++ )
+      cout << "Memory address: " << i << " is: " << memory[i] << endl;
+}
+
 void RAM::pretty_print(int pc, int opcode, int operand)
 {
 	const char * sILL = "ILL";
@@ -257,7 +263,17 @@ void RAM::execute()
 	while (!halted) {
 		op = program[pc].opcode;
 
+        cout << "Starting exectution of code at line: " << pc << endl; 
 		pretty_print(pc, op, program[pc].operand);
+
+        if(DEBUG_MODE)
+        {
+            cout << "Printing starting memory" << endl;
+            print_mem();
+            cout << "Press Enter to Continue";
+            cin.ignore();
+        }
+
 
 		switch (op) {
 		case LDA:
@@ -351,6 +367,15 @@ void RAM::execute()
 		}	// switch
 
 		cout << "AC: " << ac << endl;
+
+        if(DEBUG_MODE)
+        {
+            cout << "Printing ending memory" << endl;
+            print_mem();
+            cout << "Press Enter to Continue";
+            cin.ignore();
+        }
+
 	}	// while not halted
 } // execute()
 

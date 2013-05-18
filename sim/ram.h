@@ -13,7 +13,7 @@
 
 #ifndef __RAM_H_
 #define __RAM_H_
-
+#define DEBUG_MODE 1
 #include <vector>
 using namespace std;
 
@@ -36,6 +36,9 @@ public:
 	void init( string pFile, string mFile, int mSize );
 
 	void pretty_print(int pc, int opcode, int operand);
+
+    void print_mem();
+
 	// simulate execution of RAM with given program and memory configuration.
 	// Notes:
 	//    1. Program may not terminate (if HLT is not executed)

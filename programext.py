@@ -225,7 +225,7 @@ class ActivationRecord(object):
         '''Generates the machine code to store the parameters from the previous
         Activation Record
         '''
-
+        log.debug("store_parameters for ar: "+str(self)+" previous ar: "+str(previousAR))
         if not parameterList:
             #no parameters
             return None
@@ -299,6 +299,7 @@ class ActivationRecord(object):
     def load_stack_var(self, var):
         "Generate the machine code to load the var from the stack into the ACC"
 
+        log.debug("load_stack_var for: "+str(var))
         self.__assert_var(var)
 
         make_inst = self.__make_inst_list(list())
@@ -317,6 +318,7 @@ class ActivationRecord(object):
         '''Generates the machine code to store a stack var.  Assumes the value to
         set is in the ACC'''
 
+        log.debug("set_stack_var for: "+str(var))
         self.__assert_var(var)
 
         make_inst = self.__make_inst_list(list())
@@ -339,17 +341,21 @@ class ActivationRecord(object):
 
     def store_return_value(self):
         "Assumes return is in ACC"
+        log.debug("store_return_value for: "+str(self))
         return self.set_stack_var(self.RETURN_VALUE)
 
     def load_return_value(self):
+        log.debug("load_return_value")
         return self.load_stack_var(self.RETURN_VALUE)
 
     def store_return_addr(self):
         "Assumes return addr is in ACC"
+        log.debug("store_return_addr for: "+str(self))
         return self.set_stack_var(self.RETURN_ADDR)
 
     def jump_to_return_addr(self):
         "Produce the RAL code to jump to the return addr"
+        log.debug("jump_to_return_addr")
         make_inst = self.__make_inst_list(list())
 
         return make_inst(JMI, self.get_offset(self.RETURN_ADDR))
@@ -553,7 +559,7 @@ class Linker(object) :
     @staticmethod
     def linkAddressesToSymbolTable(symbolTable) :
         #start at an offset from the registers
-        currentAddr = 10
+        currentAddr = 11
         for const in symbolTable.iterate(CONST) :
             const.address = currentAddr
             currentAddr = currentAddr + 1
@@ -828,10 +834,6 @@ class FunCall( Expr ) :
         #
         #First update fp and sp
         instructions.extend(new_ar.prologue_update_fp_sp())
-
-        #store the parameters
-        #instuctions.extend(new_ar.store_parameters(ar, ))
-
 
         #call the function
         instructions.extend(new_ar.call(ft[self.name].label))
@@ -1300,6 +1302,8 @@ class Program :
 
 
         main_code = self.call_main()
+
+        log_inst("main_code",main_code);
 
         main_code.extend(flattenedStmtCode)
 
