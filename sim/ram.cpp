@@ -173,6 +173,73 @@ void RAM::init( string pInput, string mInput, int req_size ) {
 	}	// while tokens
 } // Init( f, f )
 
+void RAM::pretty_print(int pc, int opcode, int operand)
+{
+	const char * sILL = "ILL";
+	const char * sLDA = "LDA";
+	const char * sLDI = "LDI";
+	const char * sSTA = "STA";
+	const char * sSTI = "STI";
+	const char * sADD = "ADD";
+	const char * sSUB = "SUB";
+	const char * sMUL = "MUL";
+	const char * sJMP = "JMP";
+	const char * sJMI = "JMI";
+	const char * sJMZ = "JMZ";
+	const char * sJMN = "JMN";
+	const char * sCAL = "CAL";
+	const char * sHLT = "HLT";
+
+	const char * op = "";
+
+	switch(opcode) {
+	case ILL:
+		op = sILL;
+		break;
+	case LDA:
+		op = sLDA;
+		break;
+	case LDI:
+		op = sLDI;
+		break;
+	case STA:
+		op = sSTA;
+		break;
+	case STI:
+		op = sSTI;
+		break;
+	case ADD:
+		op = sADD;
+		break;
+	case SUB:
+		op = sSUB;
+		break;
+	case MUL:
+		op = sMUL;
+		break;
+	case JMP:
+		op = sJMP;
+		break;
+	case JMI:
+		op = sJMI;
+		break;
+	case JMZ:
+		op = sJMZ;
+		break;
+	case JMN:
+		op = sJMN;
+		break;
+	case CAL:
+		op = sCAL;
+		break;
+	case HLT:
+		op = sHLT;
+		break;
+	}
+
+	cout << "PC: " << pc << " Opcode: " << op << " Operand: " << program[pc].operand << endl;
+
+}
 // simulate execution of RAM with given program and memory configuration.
 // Notes:
 //    1. Program may not terminate (if HLT is not executed)
@@ -190,7 +257,8 @@ void RAM::execute()
 	while (!halted) {
 		op = program[pc].opcode;
 
-		cout << "PC: " << pc << " Opcode: " << op << " Operand: " << program[pc].operand << endl;
+		pretty_print(pc, op, program[pc].operand);
+
 		switch (op) {
 		case LDA:
 			x = program[pc].operand;
@@ -206,6 +274,9 @@ void RAM::execute()
 
 		case STA:
 			x = program[pc].operand;
+			if (1 == x){
+				cout << "updating SP to: " << ac << endl;
+			}
 			memory[x] = ac;
 			pc++;
 			break;
@@ -266,6 +337,7 @@ void RAM::execute()
 				//  frame, and that the return address is stored there.
 			x = program[pc].operand;
 			memory[ memory[ SP ]] = pc+1 ;	// set the return address
+			cout << "SP points to: " << memory[SP] << " which points to: " <<  memory[ memory[ SP ]] << endl;
 			pc = x ;	// jump to the function
 			break ;
 
@@ -277,6 +349,8 @@ void RAM::execute()
 			halted = true;
 			fprintf( stderr, "Error:  Got opcode %d.\n\n", op );
 		}	// switch
+
+		cout << "AC: " << ac << endl;
 	}	// while not halted
 } // execute()
 

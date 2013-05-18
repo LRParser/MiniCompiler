@@ -289,6 +289,7 @@ class ActivationRecord(object):
 
     def get_offset(self, var):
         self.__assert_var(var)
+        log.debug("Offset to %s is %s" % (var, self.on_stack[var]))
         return self.on_stack[var]
 
 
@@ -303,7 +304,12 @@ class ActivationRecord(object):
         make_inst = self.__make_inst_list(list())
 
         make_inst(LDA, FPADDR)
-        make_inst(SUB, self.get_offset(var))
+        #create a number...
+        num = Number(self.get_offset(var))
+        entry = \
+        SymbolTableUtils.createOrGetSymbolTableReference(num,num.value,CONST)
+
+        make_inst(SUB, num)
         make_inst(STA, FPBADDR)
         return make_inst(LDI, FPBADDR)
 
@@ -320,7 +326,10 @@ class ActivationRecord(object):
         #Look up the var, but first get the FP
         make_inst(LDA, FPADDR)
         #calc offset
-        make_inst(SUB, self.get_offset(var))
+        num = Number(self.get_offset(var))
+        entry = \
+        SymbolTableUtils.createOrGetSymbolTableReference(num,num.value,CONST)
+        make_inst(SUB, num)
         #store offset in FPBADDR
         make_inst(STA, FPBADDR)
         #now load back the value into the ACC
@@ -379,14 +388,20 @@ class ActivationRecord(object):
         #load SP
         make_inst(LDA, SPADDR)
         #sub one to point to new AR
-        make_inst(SUB, 1)
+        num = Number(1)
+        entry = \
+        SymbolTableUtils.createOrGetSymbolTableReference(num,num.value,CONST)
+        make_inst(SUB, num)
         #Store that ADDR into the FP
         make_inst(STA, FPADDR)
         #
         # Update SP
         #
         #FP is already in ACC, so get offset to ret addr
-        make_inst(SUB, self.get_offset(self.RETURN_ADDR))
+        num = Number(self.get_offset(self.RETURN_ADDR))
+        entry = \
+        SymbolTableUtils.createOrGetSymbolTableReference(num,num.value,CONST)
+        make_inst(SUB, num)
         #Update the SP to point to the ret. addr
         return make_inst(STA, SPADDR)
 
@@ -400,7 +415,10 @@ class ActivationRecord(object):
         #load FP
         make_inst(LDA, FPADDR)
         #add one to point to end of the old AR
-        make_inst(ADD, 1)
+        num = Number(1)
+        entry = \
+        SymbolTableUtils.createOrGetSymbolTableReference(num,num.value,CONST)
+        make_inst(ADD, num)
         #Store that ADDR into the FP
         make_inst(STA, SPADDR)
         #
@@ -465,7 +483,7 @@ GLOBAL_SYMBOL_TABLE = SymbolTable()
 class SymbolTableUtils :
 
     @staticmethod
-    def createOrGetSymbolTableReference1(key, entryVal, entryType ) :
+    def createOrGetSymbolTableReference(key, entryVal, entryType ) :
         entry = None
         if key in GLOBAL_SYMBOL_TABLE:
             log.debug("Found %s in the symbol table" % key)
@@ -506,7 +524,7 @@ class SymbolTableUtils :
 
         #set the known registers
         memdump(MEMORY_SIZE-1, "SP")
-        memdump(0, "FP")
+        memdump(MEMORY_SIZE-1, "FP")
         memdump(0, "FPB")
         memdump(0, "TEMP")
 
@@ -539,6 +557,7 @@ class Linker(object) :
         for const in symbolTable.iterate(CONST) :
             const.address = currentAddr
             currentAddr = currentAddr + 1
+            log.debug("Found const: %s" % const)
 
         for var in symbolTable.iterate(VAR) :
             var.address = currentAddr
@@ -606,7 +625,7 @@ class Number( Expr ) :
         #check to see if number is in the symbol table
         log.debug("Entering translate method for Number %s" % self)
 
-        entry = SymbolTableUtils.createOrGetSymbolTableReference1(self,self.value,CONST)
+        entry = SymbolTableUtils.createOrGetSymbolTableReference(self,self.value,CONST)
 
         instructions = list()
 
@@ -826,6 +845,7 @@ class FunCall( Expr ) :
         # load the return value into the ACC
         instructions.extend(new_ar.load_return_value())
 
+
         # and store in the caller's ar
         return_val = ar.alloc_temp()
         ar.set_stack_var(return_val)
@@ -944,7 +964,10 @@ class DefineStmt( Stmt ) :
     def __init__( self, name, proc ) :
         self.name = name
         self.proc = proc
-        self.proc.label = LABEL_FACTORY.get_label()
+        if "main" in name:
+            self.proc.label = "main"
+        else:
+            self.proc.label = LABEL_FACTORY.get_label()
 
     def eval( self, nt, ft ) :
         self.__add_self_to_function_table(ft)
@@ -1133,7 +1156,7 @@ class StmtList :
         for s in self.sl :
             (s.instructions, s.storageLocation, activationRecord) = s.translate( nt, ft, ar)
             lastStorageLocation = s.storageLocation
-            log.debug("s.instructions: %s" % s.instructions)
+
             for instr in s.instructions :
                 instructions.append(instr)
         return (instructions,lastStorageLocation, ar)
@@ -1229,6 +1252,7 @@ class Program :
         self.stmtList = stmtList
         self.nameTable = {}
         self.funcTable = {}
+        self.ar = ActivationRecord()
 
     def eval( self ) :
         self.stmtList.eval( self.nameTable, self.funcTable )
@@ -1249,21 +1273,45 @@ class Program :
     def __init_sp_fp(self):
         "generate the RAL code to init the SP and FP"
 
+    def call_main(self):
+
+        main_func = None
+
+        for s in self.stmtList.sl:
+            if isinstance(s,DefineStmt) and "main" in s.name:
+                main_func = s
+                break
+
+        assert (main_func), "main function not defined"
+
+        m = FunCall("main", None)
+
+        code, x, y = m.translate(self.nameTable, self.funcTable, self.ar)
+
+        return code
+
+
     def translate( self ) :
-        ar = ActivationRecord()
-        nestedStmtCode, lastStorageLocation, activationRecord = self.stmtList.translate(self.nameTable, self.funcTable, ar)
+
+        nestedStmtCode, lastStorageLocation, activationRecord = \
+          self.stmtList.translate(self.nameTable, self.funcTable, self.ar)
+
         flattenedStmtCode = list(self.flattenList(nestedStmtCode))
 
-        flattenedStmtCode.append(MachineCode(HLT))
 
-        flattenedStmtCode = self.remove_no_ops(flattenedStmtCode)
+        main_code = self.call_main()
+
+        main_code.extend(flattenedStmtCode)
+
+        main_code.append(MachineCode(HLT))
+
+        main_code = self.remove_no_ops(main_code)
 
         # Append a HLT instruction
 
-        log_inst("translated program", flattenedStmtCode)
+        log_inst("translated program", main_code)
 
-
-        return flattenedStmtCode
+        return main_code
 
     def link( self, machineCode ) :
         Linker.linkAddressesToSymbolTable(GLOBAL_SYMBOL_TABLE)
@@ -1274,6 +1322,7 @@ class Program :
             try:
                 linkedAddr = GLOBAL_SYMBOL_TABLE[line.operand].address
                 line.operand = linkedAddr
+
                 log.debug("Linked operand %s to address: %s" % (line.operand, linkedAddr))
 
             except KeyError:
@@ -1285,8 +1334,9 @@ class Program :
             if (inst.is_jump):
                 for i, item in enumerate(machineCode):
                     if inst.operand == item.label:
-                        log.debug("Found jump")
+                        log.debug("Found jump: %s" % inst)
                         inst.operand = i + 1
+                        log.debug(inst)
 
         return machineCode
 

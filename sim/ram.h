@@ -1,7 +1,7 @@
 // Definition of RAM (random access machine) class
 //
 // g++ (Ubuntu 4.4.1-4ubuntu9) 4.4.1 on
-// Linux 2.6.31-23-generic 
+// Linux 2.6.31-23-generic
 //
 // Editor:  tabstop=2, cols=80
 //
@@ -35,10 +35,11 @@ public:
 	// of instructions read.
 	void init( string pFile, string mFile, int mSize );
 
+	void pretty_print(int pc, int opcode, int operand);
 	// simulate execution of RAM with given program and memory configuration.
 	// Notes:
 	//    1. Program may not terminate (if HLT is not executed)
-	//    2. Currently no error checking is performed.  Checks for valid program 
+	//    2. Currently no error checking is performed.  Checks for valid program
 	//       and memory addresses and illegal opcodes should be provided.
 	void execute();
 
