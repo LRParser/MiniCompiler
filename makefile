@@ -15,7 +15,7 @@ TESTER1=runtest1.py
 RUN_TEST1=$(PYTHON) $(TEST_DIR)/$(TESTER1)
 LINT_FILE=pylint.rc
 
-ifneq (,$(findstring test,$(HOST)))
+ifneq (,$(findstring tux,$(HOST)))
 	SIM=~jjohnson/bin/ram
 else
 	SIM=./ram
