@@ -352,7 +352,14 @@ class ActivationRecord(object):
         "Produce the RAL code to jump to the return addr"
         make_inst = self.__make_inst_list(list())
 
-        return make_inst(JMI, self.get_offset(self.RETURN_ADDR))
+        num = Number(self.get_offset(self.RETURN_ADDR))
+        entry = SymbolTableUtils.createOrGetSymbolTableReference(num, num.value, CONST)
+        make_inst(LDA, FPADDR)
+        make_inst(SUB, num)
+        make_inst(STA, FPBADDR)
+        make_inst(LDI, FPBADDR)
+        make_inst(STA, FPBADDR)
+        return make_inst(JMI, FPBADDR)
 
 
     def __make_inst_list(self, the_list):
@@ -553,7 +560,7 @@ class Linker(object) :
     @staticmethod
     def linkAddressesToSymbolTable(symbolTable) :
         #start at an offset from the registers
-        currentAddr = 10
+        currentAddr = 11
         for const in symbolTable.iterate(CONST) :
             const.address = currentAddr
             currentAddr = currentAddr + 1
@@ -1290,28 +1297,33 @@ class Program :
 
         return code
 
+    def callImplMain( self ) :
+        m = FunCall("implMain", None)
+
+        (code, storageLocation, activationRecord) = m.translate(self.nameTable, self.funcTable, self.ar)
+
+        return code
+
 
     def translate( self ) :
 
-        nestedStmtCode, lastStorageLocation, activationRecord = \
-          self.stmtList.translate(self.nameTable, self.funcTable, self.ar)
-
-        flattenedStmtCode = list(self.flattenList(nestedStmtCode))
+        # create define statement for implicit main
+        implMain = DefineStmt("implMain", Proc( list(), self.stmtList))
 
 
-        main_code = self.call_main()
+        # translate the define statement into RAL code, which adds implMain to the funcTable
+        (implMainCode, lastStorageLocation, activationRecord) = implMain.translate(self.nameTable, self.funcTable, self.ar)
 
-        main_code.extend(flattenedStmtCode)
 
-        main_code.append(MachineCode(HLT))
+        implMain = self.callImplMain()
+        implMain.append(MachineCode(HLT))
+        
+        implMain.extend(list(self.flattenList(implMainCode)))
+        #implMain = self.remove_no_ops(implMain)
 
-        main_code = self.remove_no_ops(main_code)
+        log_inst("translated program", implMain)
 
-        # Append a HLT instruction
-
-        log_inst("translated program", main_code)
-
-        return main_code
+        return implMain
 
     def link( self, machineCode ) :
         Linker.linkAddressesToSymbolTable(GLOBAL_SYMBOL_TABLE)
