@@ -13,7 +13,7 @@
 
 #ifndef __RAM_H_
 #define __RAM_H_
-#define DEBUG_MODE 1
+#define DEBUG_MODE 0
 #include <vector>
 using namespace std;
 
