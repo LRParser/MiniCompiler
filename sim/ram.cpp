@@ -105,10 +105,11 @@ void RAM::init( string pInput, string mInput, int req_size ) {
 
 	OPCODES code ;
 	int operand ;
-
+        int progLines = 0;
 	while( pFile >> buf ) {
 		if( buf[0] == ';' ) {       // comment
 			getline( pFile, buf );    // flush to end of line
+                        progLines++;
 			continue ;	// nothing to store
 		}
 		else if( buf == "LDA" ) {
@@ -167,10 +168,11 @@ void RAM::init( string pInput, string mInput, int req_size ) {
 			cerr << "Error:  Illegal Instruction: " << buf << endl;
 			exit( 1 );
 		}	// if
-
+                progLines++;
 		program.push_back( Instruction( code, operand )) ;
 
 	}	// while tokens
+cout << "Program has: " << progLines << " lines" << endl;
 } // Init( f, f )
 
 void RAM::pretty_print(int pc, int opcode, int operand)
