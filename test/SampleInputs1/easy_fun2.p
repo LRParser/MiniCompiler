@@ -1,4 +1,5 @@
 define main
 proc(x)
 result := 3
-end
+end;
+test := main(3)
