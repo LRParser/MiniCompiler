@@ -358,7 +358,16 @@ class ActivationRecord(object):
         log.debug("jump_to_return_addr")
         make_inst = self.__make_inst_list(list())
 
-        return make_inst(JMI, self.get_offset(self.RETURN_ADDR))
+        num = Number(self.get_offset(self.RETURN_ADDR))
+        entry = \
+        SymbolTableUtils.createOrGetSymbolTableReference(num,num.value,CONST)
+
+        make_inst(LDA, FPADDR)
+        make_inst(SUB, num)
+        make_inst(STA, FPBADDR)
+        make_inst(LDI, FPBADDR)
+        make_inst(STA, FPBADDR)
+        return make_inst(JMI, FPBADDR)
 
 
     def __make_inst_list(self, the_list):
