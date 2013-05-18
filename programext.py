@@ -171,6 +171,18 @@ class LabelFactory ( object ) :
 
 LABEL_FACTORY = LabelFactory()
 
+class ProcLabelFactory ( object ) :
+    def __init__ ( self ) :
+        self.__labels = list()
+        self.count = 0
+
+    def get_label ( self ) :
+        newLabel = Label("P"+str(self.count))
+        self.count = self.count + 1
+        return newLabel
+
+PROC_LABEL_FACTORY = ProcLabelFactory()
+
 
 class TempVariable(Label):
 
@@ -1023,10 +1035,7 @@ class DefineStmt( Stmt ) :
     def __init__( self, name, proc ) :
         self.name = name
         self.proc = proc
-        if "main" in name:
-            self.proc.label = "main"
-        else:
-            self.proc.label = LABEL_FACTORY.get_label()
+        self.proc.label = PROC_LABEL_FACTORY.get_label()
 
     def eval( self, nt, ft ) :
         self.__add_self_to_function_table(ft)
@@ -1274,6 +1283,9 @@ class Proc :
     def translate( self, nt, ft):
 
         log.debug("Entering translate for Proc")
+        log.debug("FT for proc:")
+        for (i, function) in enumerate(ft):
+            log.debug("%s: %s (%s)" % (i, function, ft[function].label))
 
         #first create the parameter list on the AR.
         for param in self.parList:
@@ -1359,6 +1371,7 @@ class Program :
         return code
 
     def callImplMain( self ) :
+
         m = FunCall("implMain", None)
 
         (code, storageLocation, activationRecord) = m.translate(self.nameTable, self.funcTable, self.ar)
@@ -1371,20 +1384,18 @@ class Program :
         # create define statement for implicit main
         implMain = DefineStmt("implMain", Proc( list(), self.stmtList))
 
-
         # translate the define statement into RAL code, which adds implMain to the funcTable
         (implMainCode, lastStorageLocation, activationRecord) = implMain.translate(self.nameTable, self.funcTable, self.ar)
 
+        trampoline = self.callImplMain()
+        trampoline.append(MachineCode(HLT))
 
-        implMain = self.callImplMain()
-        implMain.append(MachineCode(HLT))
+        trampoline.extend(list(self.flattenList(implMainCode)))
+        trampoline = self.remove_no_ops(trampoline)
 
-        implMain.extend(list(self.flattenList(implMainCode)))
-        implMain = self.remove_no_ops(implMain)
+        log_inst("translated program", trampoline)
 
-        log_inst("translated program", implMain)
-
-        return implMain
+        return trampoline
 
     def link( self, machineCode ) :
         Linker.linkAddressesToSymbolTable(GLOBAL_SYMBOL_TABLE)
@@ -1407,7 +1418,7 @@ class Program :
             if (inst.is_jump):
                 for i, item in enumerate(machineCode):
                     if inst.operand == item.label:
-                        log.debug("Found jump: %s" % inst)
+                        log.debug("Found target of jump: %s" % inst)
                         inst.operand = i + 1
                         log.debug(inst)
 
