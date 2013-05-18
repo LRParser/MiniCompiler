@@ -69,7 +69,7 @@ returnSymbol = 'return'
 
 tabstop = '  ' # 2 spaces
 
-MEMORY_SIZE = 40
+MEMORY_SIZE = 100
 
 ######   OPCODES   ##################
 
@@ -1005,12 +1005,7 @@ class AssignStmt( Stmt ) :
 
         # First, ensure the Ident is in the symbol table. Then, store the value in the accumulator in the
         # memory address pointed to by the Ident on the LHS
-        if (isinstance(self.rhs, FunCall)):
-            #load the return result into the ACC
-            instructions.extend(ar.load_stack_var(rhsStorageLocation))
-        else:
-            #load directly from the memory
-            instructions.append(MachineCode(LDA, rhsStorageLocation))
+        instructions.extend(ar.load_stack_or_heap_var(rhsStorageLocation))
 
         #now set the LHS
         instructions.extend(ar.set_stack_var(self.name))
