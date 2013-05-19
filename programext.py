@@ -700,7 +700,8 @@ class Ident( Expr ) :
     def translate( self, nt=None, ft=None, ar = None ) :
         #check to see if Ident is in the symbol table
         log.debug("Entering translate method for Ident: %s", self)
-        entry = SymbolTableUtils.createOrGetSymbolTableReference(self.name,self.name,VAR)
+        # entry = SymbolTableUtils.createOrGetSymbolTableReference(self.name,self.name,VAR)
+        entry = ar.alloc_param(self.name)
         instructions = list()
         #instructions.append(MachineCode(LD,self.name))
 
@@ -1044,7 +1045,7 @@ class DefineStmt( Stmt ) :
 
     def translate(self, nt, ft, ar) :
 
-        log.debug("Entering translate for Define Stmt")
+        log.debug("Entering translate for Define Stmt %s" % self.name)
 
         self.__add_self_to_function_table(ft)
 
