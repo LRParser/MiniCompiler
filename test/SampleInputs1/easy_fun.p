@@ -6,4 +6,6 @@ end;
 define main
 proc(x)
 result := easy(3)
-end
+end;
+
+f := main(2)

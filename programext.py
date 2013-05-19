@@ -416,12 +416,41 @@ class ActivationRecord(object):
 
     def prologue_update_fp_sp(self):
         'Sets the fp to the sp and sets sp to the return addr'
-        make_inst = self.__make_inst_list(list())
+
 
         #
-        # Store previous FP
+        # STore previous FP
         #
-        make_inst(LDA, FPADDR).extend(self.set_stack_var(self.PREV_FP))
+        
+        ints = list()
+        ints.append(MachineCode(LDA, FPADDR))
+        
+        make_inst = self.__make_inst_list(ints)
+
+        # first, save off the value to set
+        make_inst(STA, TEMP_REG)
+
+        # Look up the var, but get the new FP...
+        make_inst(LDA, SPADDR)
+        num = Number(1)
+        entry = SymbolTableUtils.createOrGetSymbolTableReference(num,num.value,CONST)
+        make_inst(SUB, num)
+
+        # this is the new FP in the AC
+        # calc offset
+        num = Number(self.get_offset(self.PREV_FP))
+        entry = SymbolTableUtils.createOrGetSymbolTableReference(num,num.value,CONST)
+        make_inst(SUB, num)
+
+        # store offset in FPBADDR
+        make_inst(STA, FPBADDR)
+
+        # now load back the value into the ACC
+        make_inst(LDA, TEMP_REG)
+
+        # now store that into the value FPB points to
+        make_inst(STI, FPBADDR)
+        
         #
         # Update FP
         #
@@ -465,7 +494,10 @@ class ActivationRecord(object):
         # Update FP
         #
         #FP load previous FP
-        make_inst(LDA, self.get_offset(self.PREV_FP))
+        #make_inst(LDA, self.get_offset(self.PREV_FP))
+        num = Number(self.get_offset(self.PREV_FP))
+        entry = SymbolTableUtils.createOrGetSymbolTableReference(num, num.value, CONST)
+        make_inst(LDA, num)
         #Update the FP to point to the previous FP
         return make_inst(STA, FPADDR)
 
