@@ -386,7 +386,7 @@ class ActivationRecord(object):
 
     def jump_to_return_addr(self):
         "Produce the RAL code to jump to the return addr"
-        
+
         log.debug("Size of AR is: "+str(self.get_size()))
         make_inst = self.__make_inst_list(list())
 
@@ -470,7 +470,10 @@ class ActivationRecord(object):
         # Update FP
         #
         #FP load previous FP
-        make_inst(LDA, self.get_offset(self.PREV_FP))
+        num = Number(self.get_offset(self.PREV_FP))
+        entry = \
+        SymbolTableUtils.createOrGetSymbolTableReference(num,num.value,CONST)
+        make_inst(LDA, num)
         #Update the FP to point to the previous FP
         return make_inst(STA, FPADDR)
 
