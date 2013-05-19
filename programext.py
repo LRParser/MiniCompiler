@@ -119,10 +119,7 @@ class MachineCode(object):
             return False
 
     def __str__(self) :
-        if (self.operand is None) :
-            return "%s" % (self.opcode)
-        else:
-            return "%s %s" % (self.opcode, self.operand)
+        return self.symbolicStr()
 
     def symbolicStr(self):
         if (self.label is not None) :
@@ -177,7 +174,9 @@ class ProcLabelFactory ( object ) :
         self.count = 0
 
     def get_label ( self ) :
-        newLabel = Label("P"+str(self.count))
+        text = "P"+str(self.count)
+        newLabel = Label(text)
+        log.debug("Log the label: "+str(text))
         self.count = self.count + 1
         return newLabel
 
@@ -700,7 +699,7 @@ class Ident( Expr ) :
     def translate( self, nt=None, ft=None, ar = None ) :
         #check to see if Ident is in the symbol table
         log.debug("Entering translate method for Ident: %s", self)
-        entry = SymbolTableUtils.createOrGetSymbolTableReference(self.name,self.name,VAR)
+        entry = ar.alloc_param(self.name) # SymbolTableUtils.createOrGetSymbolTableReference(self.name,self.name,VAR)
         instructions = list()
         #instructions.append(MachineCode(LD,self.name))
 
@@ -1033,20 +1032,24 @@ class DefineStmt( Stmt ) :
     '''Binds a proc object to a name'''
 
     def __init__( self, name, proc ) :
+        log.debug("DefineStmt Ctor for: "+str(name))
         self.name = name
         self.proc = proc
-        self.proc.label = PROC_LABEL_FACTORY.get_label()
+        self.proc.label = name
 
     def eval( self, nt, ft ) :
         self.__add_self_to_function_table(ft)
 
     def translate(self, nt, ft, ar) :
 
-        log.debug("Entering translate for Define Stmt")
+        log.debug("Entering translate for Define Stmt with name: "+str(self.name))
 
         self.__add_self_to_function_table(ft)
 
         instructions = self.proc.translate(nt, ft)
+        #instructions.append(NoOp(self.proc.label))
+        if(instructions[0].label is not None) :
+            raise Exception("About to wipe out a label, previous value was: "+str(instructions[0].label)+" new value would be: "+str(self.proc.label))
         instructions[0].label = self.proc.label
 
         log.debug("Labeled %s with %s" % (instructions[0], self.proc.label))
@@ -1220,6 +1223,9 @@ class StmtList :
     def insert( self, stmt ) :
         self.sl.insert( 0, stmt )
 
+    def append(self, stmt ) :
+        self.sl.append(stmt)
+
     def eval( self, nt, ft ) :
         for s in self.sl :
             s.eval( nt, ft )
@@ -1346,8 +1352,11 @@ class Program :
                 log.debug("found Noop at %s" % i)
                 if item.label is not None:
                     log.debug("Had label %s" % item.label)
-                    instructions[i+1].label = item.label
-                    instructions[i] = None
+                    try :
+                        instructions[i+1].label = item.label
+                        instructions[i] = None
+                    except :
+                        pass
 
         return [x for x in instructions if x is not None]
 
@@ -1384,6 +1393,7 @@ class Program :
     def translate( self ) :
 
         # create define statement for implicit main
+
         implMain = DefineStmt("implMain", Proc( list(), self.stmtList))
 
         # translate the define statement into RAL code, which adds implMain to the funcTable

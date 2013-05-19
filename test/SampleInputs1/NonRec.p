@@ -1,5 +1,6 @@
-define fact
+define triple 
 proc(n)
-return := f
+return := 3 * n
 end;
-f := fact(3)
+f := triple(3);
+y := triple(f)
