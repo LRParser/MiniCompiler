@@ -820,10 +820,12 @@ class Plus( Expr ) :
             instructions.append(instr)
 
         # load the result of lhs into the accumulator, then subtract the rhs
-        resultStorageLocation = TEMP_VARIABLE_FACTORY.get_temp()
-        instructions.append(MachineCode(LD, lhsStorageLocation))
-        instructions.append(MachineCode(ADD, rhsStorageLocation))
-        instructions.append(MachineCode(ST, resultStorageLocation))
+        resultStorageLocation = ar.alloc_temp()
+        instructions.extend(ar.load_stack_or_heap_var(lhsStorageLocation))
+        instructions.append(MachineCode(ST, TEMP_REG))
+        instructions.extend(ar.load_stack_or_heap_var(rhsStorageLocation))
+        instructions.append(MachineCode(ADD, TEMP_REG))
+        instructions.extend(ar.set_stack_var(resultStorageLocation))
 
         for val in instructions:
             log.debug("%s %s " % (val.opcode, val.operand))
