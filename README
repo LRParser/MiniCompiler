@@ -8,6 +8,14 @@ ________________
 OVERVIEW: Assignment #4
 ___________
 
+** NOTE: TO SET THE RAM_MEM in the program you must execute the following statement:
+
+    RAM_MEM=300 make ram-size
+
+This will run the ram-size target in the make file which will set the RAM_MEM in the program to the environment
+variable RAM_MEM.
+
+
 This project builds upon project #3 which was a compiler developed targeting the RAL instruction set
 that runs on the RAM simulator.
 
@@ -23,9 +31,7 @@ interpreterext.py		** Contains the grammar for the original mini language. Also 
                         ** These text files will be generated as output (both when calling python interpretext.py < myinputfile and via calling make compile < myinputfile)
                         ** 1.) symOut.txt - Contains the symbolic RAL code prior to optimization and linking.
                         ** 2.) program-non-opt.txt - Contains the RAL code after linking is performed (but before optimization)
-                        ** 3.) program-opt.txt - Contains the RAL code after optimization and linking has been executed.
-                        ** 4.) mem-dump.txt - Outputs the non-optimized memory table. Breaks down the VARS, CONSTS and TEMP variables stored in memory and and displays their name, and memory address.
-                        ** 5.) mem-dump-opt.txt - Output the optimized memory table. Used for simulation with RAM simulator
+                        ** 3.) mem-dump.txt - Outputs the non-optimized memory table. Breaks down the VARS, CONSTS and TEMP variables stored in memory and and displays their name, and memory address.
 
 programext.py			** Contains the implementation for the grammar along with all of the implementation for
                         ** generating the RAL code to be used in the RAM simulator.
@@ -83,31 +89,40 @@ makefile
         the AC register.
 
     The linker is still responsible for resolving actual addresses.
-    The final output of the application will be optimized RAL code along with the memory table to be used as input into
+    The final output of the application will be non-optimized RAL code along with the memory table to be used as input into
     the RAL simulator.
 
 TEST FILES - Will be explained in detail below :
 ________________
 assign1.p       ** Used to test the assignment of constants to variables.
 assign2.p       ** Used to test the assignment of constants to variables, and variables to variables.
+assign3.p       ** Used to test the assignment of constants to variables, and variables to variables.
+assign4.p       ** Used to test the assignment of constants to variables, and variables to variables.
 
-identTest1.p    ** Used to test the Identity statement.
+easy_fun.p      ** Used to test simple assignment procedure.
 
+Fact.p          ** Used to test Fact procedure.
+
+identTest1.p    ** Used to test the Ident statement
+
+iftest1.p       ** Used to test the If statement method.
 iftest1.p       ** Used to test the If statement method.
 
 math.p          ** Generic math testing input file.
 
-Plus1.p         ** Used to test the Multiple method using 3 values.
-Plus2.p         ** Used to test the Multiple method using 2 values.
+Plus1.p         ** Used to test the add method using 3 values.
+Plus2.p         ** Used to test the add method using 2 values.
+Plus3.p         ** Used to test the add method using 2 assign statements.
 
 Sub1.p          ** Used to test the Subtraction method using 3 values.
 Sub2.p          ** Used to test the Subtraction method using 2 values.
+Sub3.p          ** Used to test the Subtraction using 2 assign statements.
 
 Times1.p        ** Used to test the Multiply method using 3 factors.
 Times2.p        ** Used to test the Multiply method using 2 factors.
 
 whileTest1.p    ** Used to test the While Statement
-
+whileTest2.p    ** Used to test the While Statement
 
 README				** This file. Contains details out how to run files, build, test, etc.
 
