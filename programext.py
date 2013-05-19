@@ -1049,6 +1049,8 @@ class DefineStmt( Stmt ) :
         instructions = self.proc.translate(nt, ft)
         instructions[0].label = self.proc.label
 
+        log.debug("Labeled %s with %s" % (instructions[0], self.proc.label))
+
         log_inst("translated defineStmt", instructions)
 
         return (instructions, None, None)
@@ -1415,7 +1417,15 @@ class Program :
             log.debug("Linked MachineCode: %s" % line)
 
         for inst in machineCode:
-            if (inst.is_jump):
+            if ('CAL' in str(inst)):
+                log.debug("trying to resolve %s" % inst)
+                for i, item in enumerate(machineCode):
+                    if str(inst.operand) == str(item.label):
+                        log.debug("Found target of call: %s" % inst)
+                        inst.operand = i + 1
+                        log.debug(inst)
+
+            elif (inst.is_jump):
                 for i, item in enumerate(machineCode):
                     if inst.operand == item.label:
                         log.debug("Found target of jump: %s" % inst)
