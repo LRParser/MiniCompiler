@@ -23,9 +23,7 @@ interpreterext.py		** Contains the grammar for the original mini language. Also 
                         ** These text files will be generated as output (both when calling python interpretext.py < myinputfile and via calling make compile < myinputfile)
                         ** 1.) symOut.txt - Contains the symbolic RAL code prior to optimization and linking.
                         ** 2.) program-non-opt.txt - Contains the RAL code after linking is performed (but before optimization)
-                        ** 3.) program-opt.txt - Contains the RAL code after optimization and linking has been executed.
-                        ** 4.) mem-dump.txt - Outputs the non-optimized memory table. Breaks down the VARS, CONSTS and TEMP variables stored in memory and and displays their name, and memory address.
-                        ** 5.) mem-dump-opt.txt - Output the optimized memory table. Used for simulation with RAM simulator
+                        ** 3.) mem-dump.txt - Outputs the non-optimized memory table. Breaks down the VARS, CONSTS and TEMP variables stored in memory and and displays their name, and memory address.
 
 programext.py			** Contains the implementation for the grammar along with all of the implementation for
                         ** generating the RAL code to be used in the RAM simulator.
@@ -39,7 +37,7 @@ makefile
                         **      linked RAL code
                         ** view-trans — Use cat to display your symbolic RAL program (produced in translate) to stdout.
                         ** view-link — Use cat to display your compiled (not optimised) RAL program (produced in translate to stdout.
-                        ** run — invoke ~kschmidt/bin/ram to run your program. Let output go to stdout.
+                        ** run — invoke ~jjohnson/bin/ram to run your program. Let output go to stdout.
                         ** clean — remove all binaries and intermediate files
 
     *** Application Notes ***
@@ -83,7 +81,7 @@ makefile
         the AC register.
 
     The linker is still responsible for resolving actual addresses.
-    The final output of the application will be optimized RAL code along with the memory table to be used as input into
+    The final output of the application will be non-optimized RAL code along with the memory table to be used as input into
     the RAL simulator.
 
 TEST FILES - Will be explained in detail below :
