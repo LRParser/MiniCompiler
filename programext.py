@@ -52,7 +52,8 @@ import logging
 
 logging.basicConfig(
     format = "%(levelname) -4s %(message)s",
-    level = logging.DEBUG
+    level = logging.DEBUG,
+    filename = "logfile.out"
 )
 
 log = logging.getLogger('programext')
@@ -385,6 +386,8 @@ class ActivationRecord(object):
 
     def jump_to_return_addr(self):
         "Produce the RAL code to jump to the return addr"
+        
+        log.debug("Size of AR is: "+str(self.get_size()))
         make_inst = self.__make_inst_list(list())
 
         num = Number(self.get_offset(self.RETURN_ADDR))
