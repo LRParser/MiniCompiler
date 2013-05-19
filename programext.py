@@ -173,21 +173,6 @@ class LabelFactory ( object ) :
 
 LABEL_FACTORY = LabelFactory()
 
-class ProcLabelFactory ( object ) :
-    def __init__ ( self ) :
-        self.__labels = list()
-        self.count = 0
-
-    def get_label ( self ) :
-        text = "P"+str(self.count)
-        newLabel = Label(text)
-        log.debug("Log the label: "+str(text))
-        self.count = self.count + 1
-        return newLabel
-
-PROC_LABEL_FACTORY = ProcLabelFactory()
-
-
 class TempVariable(Label):
 
     def __init__(self, number):
