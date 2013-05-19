@@ -1391,22 +1391,27 @@ class Program :
 
     def translate( self ) :
 
-        # create define statement for implicit main
+        nestedStmtCode, lastStorageLocation, activationRecord = \
+          self.stmtList.translate(self.nameTable, self.funcTable, self.ar)
 
-        implMain = DefineStmt("implMain", Proc( list(), self.stmtList))
+        flattenedStmtCode = list(self.flattenList(nestedStmtCode))
 
-        # translate the define statement into RAL code, which adds implMain to the funcTable
-        (implMainCode, lastStorageLocation, activationRecord) = implMain.translate(self.nameTable, self.funcTable, self.ar)
 
-        trampoline = self.callImplMain()
-        trampoline.append(MachineCode(HLT))
+        main_code = self.call_main()
 
-        trampoline.extend(list(self.flattenList(implMainCode)))
-        trampoline = self.remove_no_ops(trampoline)
+        main_code.append(MachineCode(HLT))
+        log_inst("main_code",main_code);
 
-        log_inst("translated program", trampoline)
+        main_code.extend(flattenedStmtCode)
 
-        return trampoline
+
+        main_code = self.remove_no_ops(main_code)
+
+        # Append a HLT instruction
+
+        log_inst("translated program", main_code)
+
+        return main_code
 
     def link( self, machineCode ) :
         Linker.linkAddressesToSymbolTable(GLOBAL_SYMBOL_TABLE)
