@@ -119,7 +119,11 @@ class MachineCode(object):
             return False
 
     def __str__(self) :
-        return self.symbolicStr()
+        #return self.symbolicStr()
+        if (self.operand is None) :
+            return "%s" % (self.opcode)
+        else :
+            return "%s %s" % (self.opcode, self.operand)
 
     def symbolicStr(self):
         if (self.label is not None) :
@@ -1049,6 +1053,8 @@ class DefineStmt( Stmt ) :
         self.__add_self_to_function_table(ft)
 
         instructions = self.proc.translate(nt, ft)
+        log_inst("translated proc", instructions)
+
         #instructions.append(NoOp(self.proc.label))
         if(instructions[0].label is not None) :
             raise Exception("About to wipe out a label, previous value was: "+str(instructions[0].label)+" new value would be: "+str(self.proc.label))
@@ -1235,12 +1241,22 @@ class StmtList :
     def translate( self, nt, ft, ar ) :
 
         instructions = list()
+        suffix = list()
+
         for s in self.sl :
             (s.instructions, s.storageLocation, activationRecord) = s.translate( nt, ft, ar)
             lastStorageLocation = s.storageLocation
 
-            for instr in s.instructions :
-                instructions.append(instr)
+            if isinstance(s, DefineStmt) :
+                for instr in s.instructions :
+                    suffix.append(instr)
+            else :
+                for instr in s.instructions :
+                    instructions.append(instr)
+
+
+        instructions.extend(suffix)
+                    
         return (instructions,lastStorageLocation, ar)
 
 
@@ -1400,6 +1416,8 @@ class Program :
 
         trampoline = self.callImplMain()
         trampoline.append(MachineCode(HLT))
+
+        log_inst("implMain body", implMainCode)
 
         trampoline.extend(list(self.flattenList(implMainCode)))
         trampoline = self.remove_no_ops(trampoline)
