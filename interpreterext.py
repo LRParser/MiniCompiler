@@ -138,7 +138,7 @@ def get_compile_functions(program):
     instructions = program.link(instructions_input)
     linkedOut = open(outfile,'w')
     for inst in instructions :
-      linkedOut.write(str(inst)+'\n')
+      linkedOut.write(inst.printNoLabel()+'\n')
     return instructions
 
   def memdump(outfile):

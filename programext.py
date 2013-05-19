@@ -118,6 +118,12 @@ class MachineCode(object):
         else:
             return False
 
+    def printNoLabel(self) :
+        if (self.operand is None) :
+            return "    %s" % (self.opcode)
+        else:
+            return "    %s %s" % (self.opcode, self.operand)
+
     def __str__(self) :
         return self.symbolicStr()
 
