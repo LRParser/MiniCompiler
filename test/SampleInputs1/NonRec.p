@@ -1,3 +1,4 @@
+i := 0;
 define triple 
 proc(n)
 return := 3 * n

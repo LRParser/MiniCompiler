@@ -699,7 +699,7 @@ class Ident( Expr ) :
     def translate( self, nt=None, ft=None, ar = None ) :
         #check to see if Ident is in the symbol table
         log.debug("Entering translate method for Ident: %s", self)
-        entry = ar.alloc_param(self.name) # SymbolTableUtils.createOrGetSymbolTableReference(self.name,self.name,VAR)
+        entry = SymbolTableUtils.createOrGetSymbolTableReference(self.name,self.name,VAR)
         instructions = list()
         #instructions.append(MachineCode(LD,self.name))
 
@@ -1037,6 +1037,8 @@ class DefineStmt( Stmt ) :
         self.proc = proc
         self.proc.label = name
 
+
+
     def eval( self, nt, ft ) :
         self.__add_self_to_function_table(ft)
 
@@ -1352,11 +1354,8 @@ class Program :
                 log.debug("found Noop at %s" % i)
                 if item.label is not None:
                     log.debug("Had label %s" % item.label)
-                    try :
-                        instructions[i+1].label = item.label
-                        instructions[i] = None
-                    except :
-                        pass
+                    instructions[i+1].label = item.label
+                    instructions[i] = None
 
         return [x for x in instructions if x is not None]
 
