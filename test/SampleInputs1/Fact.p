@@ -9,4 +9,7 @@ proc(n)
 	return := f
 end;
 
-f := fact(3)
+define main
+proc(n)
+return := fact(3)
+end
