@@ -260,17 +260,27 @@ void RAM::execute()
 		op = program[pc].opcode;
 
 		pretty_print(pc, op, program[pc].operand);
-
+                
 		switch (op) {
 		case LDA:
 			x = program[pc].operand;
 			ac = memory[x];
+                        if (1 == x) {
+                            cout << "SP loaded, values is: " << ac << endl;
+                        }
+                        else if (2 == x) {
+                            cout << "FP loaded, value is: " << ac << endl;
+                        }
+                        else if (3 == x) {
+                            cout << "FPB loaded, value is: " << ac << endl;
+                        }
 			pc++;
 			break;
 
 		case LDI:
 			x = program[pc].operand;
 			ac = memory[memory[x]];
+                        cout << "LDI the value at: " << x << " which points to: " << memory[x] << " which has value: " << ac << endl;
 			pc++;
 			break;
 
@@ -279,6 +289,12 @@ void RAM::execute()
 			if (1 == x){
 				cout << "updating SP to: " << ac << endl;
 			}
+                        else if (2 == x) {
+                                cout << "updating FP to: " << ac << endl;
+                        }
+                        else if (3 == x) {
+                                cout << "updating FPB to: " << ac << endl;
+                        }
 			memory[x] = ac;
 			pc++;
 			break;
@@ -310,11 +326,13 @@ void RAM::execute()
 		case JMP:
 			x = program[pc].operand;
 			pc = x;
+                        cout << "About to jump to: " << pc << endl;
 			break;
 
 		case JMI:
 			x = program[pc].operand;
 			pc = memory[x];
+                        cout << "About to jump to: " << pc << endl;
 			break;
 
 		case JMZ:

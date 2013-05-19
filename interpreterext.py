@@ -171,10 +171,10 @@ def p_program( p ) :
   LABEL_FACTORY.count = 0
 
   #now optimize (requires re-translate)
-  instructions = translate()
-  instructions = optimize(instructions)
-  link(instructions, "program-opt.txt")
-  memdump("mem-dump-opt.txt")
+  #instructions = translate()
+  #instructions = optimize(instructions)
+  #link(instructions, "program-opt.txt")
+  #memdump("mem-dump-opt.txt")
 
 
 def p_stmt_list( p ) :
