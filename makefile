@@ -1,7 +1,7 @@
 TOP ?= $(shell pwd)
 
 HOST=$(shell hostname)
-ASSIGNMENT=A3
+ASSIGNMENT=A4
 PYTHON=python
 INTERPRET=interpreterext.py
 PROGRAMEXT=programext.py
@@ -39,12 +39,15 @@ BUILD_SIM=$(SIM_CODE_DIR)ram.cpp $(SIM_CODE_DIR)main.cpp -I $(SIM_CODE_DIR)
 RELEASE_DIR=release
 RELEASE_FILE=$(ASSIGNMENT).tar.gz
 
-.PHONY : clean test lint build tags view-trans view-link view-op
+.PHONY : ram-size clean test lint build tags view-trans view-link view-op
 
 # define the run-sim function
 # takes two arguments... progFile memFile
 run-simulator = $(SIM) $(1) $(2)
-
+	
+ram-size :
+	echo $(RAM_MEM)
+	@sed -i 's/.*MEMORY_SIZE =.*/MEMORY_SIZE = $(RAM_MEM)/g' $(PROGRAMEXT)
 view:
 	@more $(INTERPRET) $(PROGRAMEXT)
 ram:
@@ -55,7 +58,6 @@ run: compile
 
 run-op: compile
 	@$(call run-simulator,$(OPT_PROGRAM),$(OPT_MEM_FILE))
-
 
 view-trans:
 	@cat $(TRANS_OUT_FILE)
