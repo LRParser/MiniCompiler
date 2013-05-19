@@ -1,2 +1,5 @@
-f := 0;
-f := 2
+define main
+proc(x)
+f := 200 * 3;
+return := 40
+end
