@@ -62,6 +62,7 @@ def log_inst(name, inst_list):
     for i in inst_list:
         log.debug(i)
 
+
 ####  CONSTANTS   ################
 
 # the variable name used to store a proc's return value
@@ -234,7 +235,9 @@ class ActivationRecord(object):
         '''Get the size of the activation record.  Useful for determing where
         the SP and FP should go
         '''
-        return self.rel_mem_addr + 1
+        for (i, var) in  enumerate(self.on_stack) :
+            None
+        return i + 1
 
     def store_parameters(self, previousAR, parameterList):
         '''Generates the machine code to store the parameters from the previous
@@ -255,7 +258,7 @@ class ActivationRecord(object):
                 self.alloc_param(param)
 
                 #and store the new param
-                instructions.exend(self.set_stack_var(param))
+                instructions.extend(self.set_stack_var(param))
 
 
 
@@ -276,7 +279,6 @@ class ActivationRecord(object):
     def load_prev_fp(self):
         "Return RAL code to load the previous FP into the ACC"
         return self.load_stack_var(self.PREV_FP)
-
 
 
     def alloc_temp(self):
@@ -385,10 +387,7 @@ class ActivationRecord(object):
         "Produce the RAL code to jump to the return addr"
         make_inst = self.__make_inst_list(list())
 
-        num = Number(self.get_offset(self.RETURN_ADDR))
-        entry = SymbolTableUtils.createOrGetSymbolTableReference(num, num.value, CONST)
-        make_inst(LDA, FPADDR)
-        make_inst(SUB, num)
+        make_inst(LD, SPADDR)
         make_inst(STA, FPBADDR)
         make_inst(LDI, FPBADDR)
         make_inst(STA, FPBADDR)
@@ -415,96 +414,114 @@ class ActivationRecord(object):
         self.alloc_param(self.RETURN_ADDR)
 
     def prologue_update_fp_sp(self):
-        'Sets the fp to the sp and sets sp to the return addr'
-
+        'Sets the fp to the sp - 1 and sets sp to the return addr'
 
         #
-        # STore previous FP
+        # Previous FP should be saved to a TEMP_REG
         #
-        
-        ints = list()
-        ints.append(MachineCode(LDA, FPADDR))
-        
-        make_inst = self.__make_inst_list(ints)
+        make_inst = self.__make_inst_list(list())
+        make_inst(LD, FPADDR)
+        make_inst(ST, TEMP_REG)
 
-        # first, save off the value to set
-        make_inst(STA, TEMP_REG)
-
-        # Look up the var, but get the new FP...
-        make_inst(LDA, SPADDR)
+        #
+        # Now load the SP address
+        # and subtract 1 to find the new FP
+        #
+        make_inst(LD, SPADDR)
         num = Number(1)
         entry = SymbolTableUtils.createOrGetSymbolTableReference(num,num.value,CONST)
         make_inst(SUB, num)
 
-        # this is the new FP in the AC
-        # calc offset
-        num = Number(self.get_offset(self.PREV_FP))
-        entry = SymbolTableUtils.createOrGetSymbolTableReference(num,num.value,CONST)
-        make_inst(SUB, num)
+        #
+        # Store this in FP
+        #
+        make_inst(ST, FPADDR)
 
-        # store offset in FPBADDR
-        make_inst(STA, FPBADDR)
 
-        # now load back the value into the ACC
-        make_inst(LDA, TEMP_REG)
+        # Now, update the SP to point to the top of the AR
+        #
+        # First, we calculate the offset from FPADDR, which is in AC
+        #
+        sizeOfAR = self.get_size()
 
-        # now store that into the value FPB points to
-        make_inst(STI, FPBADDR)
+        log.debug("Size of AR is %s" % sizeOfAR)
+        self.log_ar()
         
+        num  = Number(sizeOfAR - 1)
+        entry = SymbolTableUtils.createOrGetSymbolTableReference(num, num.value, CONST)
+        make_inst(SUB, num)
+
         #
-        # Update FP
+        # Now, we store this new memory location in SPADDR
         #
-        #load SP
-        make_inst(LDA, SPADDR)
-        #sub one to point to new AR
+        make_inst(ST, SPADDR)
+
+        #
+        # since SP is in the AC, we can finally 
+        # update the previous fp value (SP + 1)
+        # to hold the value of the previous FP
+        #
         num = Number(1)
-        entry = \
-        SymbolTableUtils.createOrGetSymbolTableReference(num,num.value,CONST)
-        make_inst(SUB, num)
-        #Store that ADDR into the FP
-        make_inst(STA, FPADDR)
-        #
-        # Update SP
-        #
-        #FP is already in ACC, so get offset to ret addr
-        num = Number(self.get_offset(self.RETURN_ADDR))
-        entry = \
-        SymbolTableUtils.createOrGetSymbolTableReference(num,num.value,CONST)
-        make_inst(SUB, num)
-        #Update the SP to point to the ret. addr
-        return make_inst(STA, SPADDR)
+        entry = SymbolTableUtils.createOrGetSymbolTableReference(num, num.value, CONST)
+        make_inst(ADD, num)
+        make_inst(ST, FPBADDR)
+        make_inst(LD, TEMP_REG)
+        return make_inst(STI, FPBADDR)
+        
 
     def epilogue_update_fp_sp(self):
-        'Sets the fp to the sp and sets sp to the return addr'
+        'Sets the SP to the return addr (FP + 1) and the FP to the previous FP'
         make_inst = self.__make_inst_list(list())
 
         #
-        # Update SP
+        # First, we store the value of the previous FP (SP + 1) into the TEMP_REG
+        #
+        make_inst(LD, SPADDR)
+        num = Number(1)
+        entry = SymbolTableUtils.createOrGetSymbolTableReference(num, num.value, CONST)
+        make_inst(ADD, num)
+        make_inst(ST, TEMP_REG)
+
+        #
+        # Next, we make the SP point to the FP + 1
         #
         #load FP
-        make_inst(LDA, FPADDR)
+        make_inst(LD, FPADDR)
         #add one to point to end of the old AR
         num = Number(1)
-        entry = \
-        SymbolTableUtils.createOrGetSymbolTableReference(num,num.value,CONST)
+        entry = SymbolTableUtils.createOrGetSymbolTableReference(num,num.value,CONST)
         make_inst(ADD, num)
-        #Store that ADDR into the FP
-        make_inst(STA, SPADDR)
+        #Store that ADDR into the SP
+        make_inst(ST, SPADDR)
+
         #
-        # Update FP
+        # Now, we update the FP
         #
-        #FP load previous FP
-        #make_inst(LDA, self.get_offset(self.PREV_FP))
-        num = Number(self.get_offset(self.PREV_FP))
-        entry = SymbolTableUtils.createOrGetSymbolTableReference(num, num.value, CONST)
-        make_inst(LDA, num)
-        #Update the FP to point to the previous FP
-        return make_inst(STA, FPADDR)
+        # load previous FP from TEMP_REG
+        # and store in FP
+        make_inst(LD, TEMP_REG)
+        return make_inst(ST, FPADDR)
 
     def call(self, function_label):
         "Assumes SP already points to ret address"
         make_inst = self.__make_inst_list(list())
         return make_inst(CAL, function_label)
+
+    def store_RA(self, returnAddress) :
+        'Store the return address into FPB'
+        make_inst = self.__make_inst_list(list())
+
+        num = Number(returnAddress)
+        entry = SymbolTableUtils.createOrGetSymbolTableReference(num, num.value, CONST)
+        make_inst(LD, num)
+        return make_inst(STI, SPADDR)
+        
+
+    def log_ar(self) :
+        log.debug("Printing out activation record")
+        for i, var in enumerate(self.on_stack) :
+            log.debug("%s: %s" % (i, var))
+        
 
 
 class NoOp(MachineCode):
@@ -595,7 +612,7 @@ class SymbolTableUtils :
         memdump = pretty_print(count)
 
         #set the known registers
-        memdump(MEMORY_SIZE-1, "SP")
+        memdump(MEMORY_SIZE, "SP")
         memdump(MEMORY_SIZE-1, "FP")
         memdump(0, "FPB")
         memdump(0, "TEMP")
@@ -942,7 +959,11 @@ class FunCall( Expr ) :
         instructions.extend(new_ar.prologue_update_fp_sp())
 
         #store the parameters
-        #instructions.extend(self.translate_arguments(proc_to_call, new_ar, nt, ft, ar))
+        instructions.extend(self.translate_arguments(proc_to_call, new_ar, nt, ft, ar))
+
+        # set the RA
+        # two instructions to set the RA + one instruction for the call + one for the next instruction after the call
+        instructions.extend(new_ar.store_RA(len(instructions) + 4))
 
         #call the function
         instructions.extend(new_ar.call(ft[self.name].label))
@@ -1040,18 +1061,17 @@ class AssignStmt( Stmt ) :
         (rhsCode, rhsStorageLocation, ar) = self.rhs.translate(nt,ft,ar)
         for instr in rhsCode :
             instructions.append(instr)
-            # instructions.append(rhsCode)
+
         log.debug("RHS of AssignStmt translated")
         log.debug("RHS storage: %s" % rhsStorageLocation)
 
-        # The value computed by the RHS is now in the accumulator. Make sure it
-        # exists on the AR
+        # The value computed by the RHS is now in the accumulator. 
+        # Make sure the local ident exists on the AR
         if not ar.param_exists(self.name):
             ar.alloc_param(self.name)
 
 
-        # First, ensure the Ident is in the symbol table. Then, store the value in the accumulator in the
-        # memory address pointed to by the Ident on the LHS
+        # ensure the temp is in the symbol table. 
         instructions.extend(ar.load_stack_or_heap_var(rhsStorageLocation))
 
         #now set the LHS
@@ -1085,16 +1105,13 @@ class DefineStmt( Stmt ) :
         self.__add_self_to_function_table(ft)
 
         instructions = self.proc.translate(nt, ft)
-        log_inst("translated proc", instructions)
 
         #instructions.append(NoOp(self.proc.label))
-        if(instructions[0].label is not None) :
+        if (instructions[0].label is not None) :
             raise Exception("About to wipe out a label, previous value was: "+str(instructions[0].label)+" new value would be: "+str(self.proc.label))
         instructions[0].label = self.proc.label
 
         log.debug("Labeled %s with %s" % (instructions[0], self.proc.label))
-
-        log_inst("translated defineStmt", instructions)
 
         return (instructions, None, None)
 
@@ -1288,6 +1305,8 @@ class StmtList :
 
 
         instructions.extend(suffix)
+
+        log.debug("StmtList.translate() lastStorageLocation is %s" % lastStorageLocation)
                     
         return (instructions,lastStorageLocation, ar)
 
@@ -1359,14 +1378,14 @@ class Proc :
         #alloc the epliogue on the AR
         self.ar.alloc_epilogue()
 
+        # update the returnValue to be the value in the lastStorageLocation
+        instructions.extend(self.ar.store_return_value())
+
         instructions.extend(self.ar.jump_to_return_addr())
 
         log_inst("translated proc", instructions)
 
         return instructions
-
-
-
 
 
     def display( self, nt, ft, depth=0 ) :
@@ -1410,23 +1429,6 @@ class Program :
 
     def __init_sp_fp(self):
         "generate the RAL code to init the SP and FP"
-
-    def call_main(self):
-
-        main_func = None
-
-        for s in self.stmtList.sl:
-            if isinstance(s,DefineStmt) and "main" in s.name:
-                main_func = s
-                break
-
-        assert (main_func), "main function not defined"
-
-        m = FunCall("main", None)
-
-        code, x, y = m.translate(self.nameTable, self.funcTable, self.ar)
-
-        return code
 
     def callImplMain( self ) :
 
