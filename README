@@ -105,7 +105,9 @@ assign1.p       ** Used to test the assignment of constants to variables.
 
 When running this file, one can properly see output such as 600 at the bottom of the stack
 
-MainFunc.p      ** Used to further test the main function
+easy_fun.p      ** Used to further test the main function; shows how Main can call another function. In the generated symbolic RAL (symOut.txt), one can see that the initial instuction stream calls main and then, once main returns, eventually executes HLT. main in turn calls easy, which returns to main.
+
+easy_fun2.p     ** Shows further depth of stack calling; main calls a function which itself calls another function. In the generated symbolic RAL (symOut.txt) one can see that main calls easy, which in turn calls levelTwo. The nested calls all terminate correctly
 
 RUNNING: Assignment #4, Part #1
 ___________
@@ -124,11 +126,17 @@ ________________
 1. Updated symbol table
     20 points
 
+        Note: We now have symbol storage (via using labels) that resolves at linktime; this allows us to implement the function calling convention documented in lecture, whereby frame pointer and stack pointer are updated as the frame grows
+
       2. Translation
     20 points
 
+        Note: We translate code such that parameters are pushed to the bottom of the stack using an activation record object; temporaries follow this, followed by return_addr, return, and prev_fp entries. We store values relative to function pointers and stack pointers and include methods to emit prolog and epilog to FunCalls, so that nested function calls (i.e., a calls b calls c) can be made (with the caveat that return values aren't currently properly passed down the stack)
+
       3. Linking
     20 points
+
+        Note: We implemented an is_jump function which checks whether the opcode of an unlinked machine code line refers to each a JMI/JMN/JMZ/JMP or a CAL, and if so, we find the label of that line at link-time and resolve it
 
       4. JMI in RAM simulator (already given, see announcement)
     0 point
@@ -136,11 +144,18 @@ ________________
       5. complie method
     10 points
 
+        Note: We implemented function-aware compilation for DefineStmt, Proc, FunCall and modified how Program is translated accordingly. We changed the way we generate labels during compilation to ensure translated functions aren't placed "too early" in the instruction stream, just because they may be defined early
+
       6. Init PC in RAM, depending on how you low procedures
     10 points
+
+        Note: We init the PC via using the CAL instruction. We link the address of main at compile-time and make sure to emit a CAL to main
 
       7. Output method that dumps the compiled RAL program
     10 points
 
       Documents: makefile, README, samle inputs, etc.
+
+        Note: Here we document that, while the program doesn't work fully, we have a design that we feel that, with more time, could be evolved into a fully working program. Bottom-upwards stack growth, CAL with return via SP, and labelling of functions are all working in the code and described in this file
+
     10 points
