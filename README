@@ -40,6 +40,8 @@ makefile
                         ** run — invoke ~jjohnson/bin/ram to run your program. Let output go to stdout.
                         ** clean — remove all binaries and intermediate files
 
+README                  ** This file
+
     *** Application Notes ***
 
     The RAL instruction set has been expanded to now include all of the following calls:
@@ -67,7 +69,7 @@ makefile
     Frame pointer buffer will always be stored at Address #3.
     A temporary register will always be stored at Address #4.
 
-    DefineStmt has been modified with a 'translate' method that will not support procedures.
+    DefineStmt has been modified with a 'translate' method that will support procedures.
         The DefineStmt will add the function name to the function table along with creating a label
         so that we can jump back to that function.
 
@@ -84,30 +86,26 @@ makefile
     The final output of the application will be non-optimized RAL code along with the memory table to be used as input into
     the RAL simulator.
 
+OUTPUT
+_________
+
+After the program is run, a log file logfile.out is generated which describes why code was linked in the manner it was
+symOut.txt is generated with symbolic RAL
+program-non-opt.txt is generated with linked RAL
+mem-dump.txt has the generated memory table
+
+LIMITATIONS
+___________
+
+Recursion is not supported. Only the "main" function is properly writing values to the stack. Also, the "main" function must be explicitly defined
+
 TEST FILES - Will be explained in detail below :
 ________________
 assign1.p       ** Used to test the assignment of constants to variables.
-assign2.p       ** Used to test the assignment of constants to variables, and variables to variables.
 
-identTest1.p    ** Used to test the Identity statement.
+When running this file, one can properly see output such as 600 at the bottom of the stack
 
-iftest1.p       ** Used to test the If statement method.
-
-math.p          ** Generic math testing input file.
-
-Plus1.p         ** Used to test the Multiple method using 3 values.
-Plus2.p         ** Used to test the Multiple method using 2 values.
-
-Sub1.p          ** Used to test the Subtraction method using 3 values.
-Sub2.p          ** Used to test the Subtraction method using 2 values.
-
-Times1.p        ** Used to test the Multiply method using 3 factors.
-Times2.p        ** Used to test the Multiply method using 2 factors.
-
-whileTest1.p    ** Used to test the While Statement
-
-
-README				** This file. Contains details out how to run files, build, test, etc.
+MainFunc.p      ** Used to further test the main function
 
 RUNNING: Assignment #4, Part #1
 ___________
@@ -118,5 +116,31 @@ Other included targets are view, compile, view-trans, view-link, view-op and cle
 
 TESTING: Assignment #4, Part #1
 ___________
-All test case files (*.p) have been run through the compiler to ensure proper operation. The output of the compiler has
-also been ran through the RAM simulator to validate the instructions have been generated properly.
+All test case files (*.p) have been run through the compiler to ensure proper operation (within the bounds of documented limitations). High-level code (CAL/JMI sequences, function label linking, etc) is working correctly although function returns do not appear to be working correctly (i.e., f1() calls f2()) as documented.
+The output of the compiler has also been ran through the RAM simulator to validate the instructions have been generated properly.
+
+RUBRIC NOTES:
+________________
+1. Updated symbol table
+    20 points
+
+      2. Translation
+    20 points
+
+      3. Linking
+    20 points
+
+      4. JMI in RAM simulator (already given, see announcement)
+    0 point
+
+      5. complie method
+    10 points
+
+      6. Init PC in RAM, depending on how you low procedures
+    10 points
+
+      7. Output method that dumps the compiled RAL program
+    10 points
+
+      Documents: makefile, README, samle inputs, etc.
+    10 points
