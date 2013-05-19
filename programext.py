@@ -1035,7 +1035,9 @@ class DefineStmt( Stmt ) :
     def __init__( self, name, proc ) :
         self.name = name
         self.proc = proc
-        self.proc.label = PROC_LABEL_FACTORY.get_label()
+        self.proc.label = name
+
+
 
     def eval( self, nt, ft ) :
         self.__add_self_to_function_table(ft)
